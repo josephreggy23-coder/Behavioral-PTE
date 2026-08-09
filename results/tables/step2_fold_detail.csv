@@ -1,0 +1,16 @@
+fold,held_out,n_test,n_events_test,selected_C,auc,key,label
+0,clutch_C,28,16,0.01,0.3229166666666667,a_locomotion_only,(a) baseline_locomotion only
+1,clutch_B,27,11,0.01,0.4204545454545454,a_locomotion_only,(a) baseline_locomotion only
+2,clutch_A,26,9,0.01,0.5032679738562091,a_locomotion_only,(a) baseline_locomotion only
+0,clutch_C,28,16,0.01,0.3541666666666667,b_dose_only,(b) dose only
+1,clutch_B,27,11,0.01,0.5085227272727273,b_dose_only,(b) dose only
+2,clutch_A,26,9,0.01,0.4575163398692811,b_dose_only,(b) dose only
+0,clutch_C,28,16,0.01,0.6145833333333334,c_dose_pretau,(c) dose + pre_tau
+1,clutch_B,27,11,0.01,0.8295454545454545,c_dose_pretau,(c) dose + pre_tau
+2,clutch_A,26,9,10.0,0.5882352941176471,c_dose_pretau,(c) dose + pre_tau
+0,clutch_C,28,16,0.01,0.6302083333333333,d_dose_dtau,(d) dose + z_dtau
+1,clutch_B,27,11,0.01,0.6590909090909091,d_dose_dtau,(d) dose + z_dtau
+2,clutch_A,26,9,100.0,0.5751633986928104,d_dose_dtau,(d) dose + z_dtau
+0,clutch_C,28,16,0.03,0.8802083333333334,e_full,(e) full 4-predictor model
+1,clutch_B,27,11,10.0,0.9090909090909091,e_full,(e) full 4-predictor model
+2,clutch_A,26,9,1.0,0.7581699346405228,e_full,(e) full 4-predictor model

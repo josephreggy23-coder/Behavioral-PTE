@@ -1,0 +1,10 @@
+group,clutch,n_fish,n_converted,conversion_rate
+sham,clutch_A,15,0,0.0
+sham,clutch_B,15,2,0.13333333333333333
+sham,clutch_C,15,1,0.06666666666666667
+low_impact,clutch_A,15,5,0.3333333333333333
+low_impact,clutch_B,15,6,0.4
+low_impact,clutch_C,15,6,0.4
+high_impact,clutch_A,14,4,0.2857142857142857
+high_impact,clutch_B,14,5,0.35714285714285715
+high_impact,clutch_C,15,11,0.7333333333333333
