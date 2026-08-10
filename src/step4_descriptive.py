@@ -79,7 +79,7 @@ def tau_dynamics(fits: pd.DataFrame) -> pd.DataFrame:
                             values="decay_constant_fit", observed=True)
     for g in config.GROUPS:
         w = wide.xs(g, level="group")
-        for tp in [0.5, 1.0, 5.0, 24.0]:
+        for tp in [t for t in config.TIMEPOINTS if t != config.BASELINE_TP]:
             d = (w[tp] - w[config.BASELINE_TP]).dropna()
             t, p = stats.ttest_1samp(d, 0.0)
             ci = stats.t.interval(0.95, len(d) - 1, loc=d.mean(),
@@ -155,16 +155,20 @@ def operations() -> pd.DataFrame:
     sl["cost_per_fish_usd"] = sl["consumables_cost_usd"] / sl["n_fish_recorded"]
     sl.to_csv(config.TABLES / "step4_session_metrics.csv", index=False)
 
-    total_fish_sessions = int(sl["n_fish_recorded"].sum())
+    hab = sl[sl["session_kind"] == "habituation"]
     total_lost = int(sl["fish_lost_this_session"].sum())
-    n_start = int(sl.loc[sl["timepoint_h"] == config.BASELINE_TP, "n_fish_recorded"].sum())
+    base = hab[hab["timepoint_h"] == config.BASELINE_TP]
+    n_start = int(base["n_fish_recorded"].sum()) if len(base) else int(sl["n_fish_recorded"].max())
     attrition = total_lost / n_start if n_start else np.nan
 
     metrics = {
         "n_sessions": len(sl),
-        "total_fish_sessions_recorded": total_fish_sessions,
+        "n_habituation_sessions": len(hab),
+        "n_outcome_sessions": int((sl["session_kind"] == "outcome").sum()),
+        "total_fish_sessions_recorded": int(sl["n_fish_recorded"].sum()),
         "fish_per_hour_mean": float(sl["fish_per_hour"].mean()),
         "fish_per_hour_sd": float(sl["fish_per_hour"].std(ddof=1)),
+        "fish_per_hour_habituation": float(hab["fish_per_hour"].mean()),
         "operator_min_per_fish_mean": float(sl["operator_min_per_fish"].mean()),
         "operator_min_per_fish_sd": float(sl["operator_min_per_fish"].std(ddof=1)),
         "cost_per_fish_usd_mean": float(sl["cost_per_fish_usd"].mean()),
@@ -177,11 +181,19 @@ def operations() -> pd.DataFrame:
     }
     for k, v in metrics.items():
         sb.record("4", "operations", k, v, n=len(sl),
-                  notes="consumables_cost_usd is treated as a per-session total "
-                        "(it scales with n_fish_recorded, r = 0.999)"
-                  if "cost" in k else "")
-    for k, v in metrics.items():
+                  notes="consumables_cost_usd treated as a per-session total (it scales with "
+                        "n_fish_recorded)" if "cost" in k else "")
         print(f"  {k:<32} {v:.3f}" if isinstance(v, float) else f"  {k:<32} {v}")
+
+    # the outcome recording is a longer, more expensive session than habituation
+    for kind in ("habituation", "outcome"):
+        sub = sl[sl["session_kind"] == kind]
+        if len(sub):
+            sb.record("4", "operations", f"{kind}_operator_min_per_fish",
+                      float(sub["operator_min_per_fish"].mean()), n=len(sub),
+                      notes=f"{kind} sessions only")
+            print(f"  {kind:<12} operator min/fish = {sub['operator_min_per_fish'].mean():.2f}, "
+                  f"acquisition {sub['acquisition_min'].mean():.0f} min")
 
     ci = proportion_confint(total_lost, n_start, method="wilson")
     sb.record("4", "operations", "attrition_rate_ci", float(attrition), ci_low=float(ci[0]),
@@ -196,8 +208,69 @@ def operations() -> pd.DataFrame:
 # --------------------------------------------------------------------------
 # PTZ probe -- secondary, underpowered
 # --------------------------------------------------------------------------
+def ptz_confound_check() -> None:
+    """PTZ is now given to a subset of the SAME larvae that supply the outcome.
+
+    That raises an obvious question: does receiving a proconvulsant change the
+    conversion outcome? If it did, the PTZ subset would convert at a different
+    rate and the primary analysis would be contaminated. This checks it.
+    """
+    sb.banner("STEP 4e -- is the PTZ challenge a confound for the conversion outcome?")
+    oc = io_data.outcomes()
+    if "ptz_challenged" not in oc.columns:
+        print("  no ptz_challenged flag in outcomes; skipping")
+        return
+    print(oc.groupby(["group", "ptz_challenged"], observed=True)["converted"]
+          .agg(["size", "sum"]).to_string())
+    for g in config.GROUPS:
+        d = oc[oc["group"] == g]
+        a = d[d["ptz_challenged"] == 1]["converted"]
+        b = d[d["ptz_challenged"] == 0]["converted"]
+        table = np.array([[int(a.sum()), len(a) - int(a.sum())],
+                          [int(b.sum()), len(b) - int(b.sum())]])
+        _, p = stats.fisher_exact(table)
+        sb.record("4", "ptz_confound", f"conversion_challenged_vs_not_{g}",
+                  float(a.mean() - b.mean()), n=len(d),
+                  test="Fisher exact, converted by ptz_challenged", p_value=float(p),
+                  notes=f"challenged {int(a.sum())}/{len(a)}, not challenged "
+                        f"{int(b.sum())}/{len(b)}")
+        print(f"  {g:<12} challenged {a.mean():.3f} vs not {b.mean():.3f}, Fisher p = {p:.4f}")
+        sb.check(f"PTZ challenge does not shift conversion in {g}", bool(p > 0.05),
+                 f"p = {p:.4f}")
+
+
+def ptz_vs_conversion() -> None:
+    """PTZ and conversion are measured on the same animals, so they can be crossed."""
+    oc = io_data.outcomes().set_index("fish_id")
+    pz = io_data.ptz_challenge()
+    d = pz.join(oc["converted"], on="fish_id").dropna(subset=["converted"])
+    if d.empty:
+        return
+    table = pd.crosstab(d["converted"].astype(int), d["seized"])
+    print("  seized x converted (PTZ subset):")
+    print(table.to_string())
+    if table.shape == (2, 2):
+        odds, p = stats.fisher_exact(table.to_numpy())
+        sb.record("4", "ptz_vs_conversion", "odds_ratio_seized_given_converted", float(odds),
+                  n=len(d), test="Fisher exact, seized x converted within the PTZ subset",
+                  p_value=float(p), effect_size_name="odds ratio", effect_size=float(odds),
+                  notes="both measured on the same larvae; exploratory, not pre-specified")
+        print(f"  Fisher exact OR = {odds:.2f}, p = {p:.4f}")
+    a = d[d["converted"] == 1]["latency_s"]
+    b = d[d["converted"] == 0]["latency_s"]
+    if len(a) > 1 and len(b) > 1:
+        u, pu = stats.mannwhitneyu(a, b, alternative="two-sided")
+        sb.record("4", "ptz_vs_conversion", "latency_converter_minus_nonconverter",
+                  float(a.median() - b.median()), n=len(d),
+                  test="Mann-Whitney U on PTZ latency by conversion status",
+                  statistic=float(u), p_value=float(pu),
+                  notes=f"median converter {a.median():.0f} s, non-converter {b.median():.0f} s")
+        print(f"  PTZ latency: converters median {a.median():.0f} s vs non-converters "
+              f"{b.median():.0f} s, Mann-Whitney U = {u:.0f}, p = {pu:.4f}")
+
+
 def ptz() -> pd.DataFrame:
-    sb.banner("STEP 4e -- PTZ threshold probe (SECONDARY, UNDERPOWERED)")
+    sb.banner("STEP 4f -- PTZ threshold probe (SECONDARY)")
     pz = io_data.ptz_challenge()
     rows = []
     for g in config.GROUPS:
@@ -253,10 +326,30 @@ def ptz() -> pd.DataFrame:
                     "underpowering explicit, not to reinterpret the p-value")
     print(f"  post-hoc power for sham ({p_sham:.2f}) vs injured ({p_inj:.2f}) at this n: "
           f"{power:.2f} (Cohen's h = {h:.2f})")
-    print("  STATEMENT: the PTZ probe is underpowered at this n and is reported as a "
-          "directional check only; no conclusion rests on it.")
 
-    plotting.fig_ptz(summary)
+    # The power statement must follow the data, not a prior expectation.
+    if power >= 0.80:
+        print(f"  STATEMENT: at n = {n_sham + n_inj} the sham-versus-injured contrast is "
+              f"adequately powered ({100*power:.0f}%). It remains a SECONDARY outcome: the "
+              "primary claim is about individual prediction, which this group-level test does "
+              "not address.")
+        sb.record("4", "ptz", "power_verdict", "adequately powered for sham vs injured",
+                  n=n_sham + n_inj, notes="secondary outcome regardless of power")
+    else:
+        print("  STATEMENT: the PTZ probe is underpowered at this n and is reported as a "
+              "directional check only; no conclusion rests on it.")
+        sb.record("4", "ptz", "power_verdict", "underpowered", n=n_sham + n_inj)
+
+    # the low-vs-high dose contrast is a separate question and is not powered
+    n_low = int(summary.loc[summary["group"] == "low_impact", "n"].iloc[0])
+    n_high = int(summary.loc[summary["group"] == "high_impact", "n"].iloc[0])
+    print(f"  NOTE: the low-versus-high dose contrast (n = {n_low} vs {n_high}) remains "
+          "underpowered; the two injured groups are not distinguishable on this probe.")
+    sb.record("4", "ptz", "low_vs_high_powered", "no", n=n_low + n_high,
+              notes="dose-discrimination within injured groups is not powered at this n")
+
+    lat = {g: pz.loc[pz['group'] == g, 'latency_s'].to_numpy() for g in config.GROUPS}
+    plotting.fig_ptz(summary, lat)
     return summary
 
 
@@ -267,5 +360,7 @@ def run(fits: pd.DataFrame) -> dict:
     plotting.fig_habituation_curves(io_data.habituation_trials())
     plotting.fig_tau_trajectories(fits)
     sl = operations()
+    ptz_confound_check()
     pz = ptz()
+    ptz_vs_conversion()
     return {"tau_summary": summ, "sessions": sl, "ptz": pz}

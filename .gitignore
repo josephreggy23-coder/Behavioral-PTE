@@ -8,3 +8,6 @@ venv/
 ~$*.xlsx
 
 .DS_Store
+
+# superseded pilot dataset (kept locally, not tracked)
+realdata.xlsx

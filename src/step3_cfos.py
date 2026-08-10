@@ -1,15 +1,33 @@
-"""STEP 3 -- orthogonal molecular validation on the paired c-fos pools.
+"""STEP 3 -- molecular validation of the conversion phenotype (paired c-fos pools).
 
-The 18 pools are NOT 18 independent observations.  They are 9 matched pairs:
-one high_risk and one low_risk pool per (group x clutch) cell, processed on the
-same plate with the same reference gene.  The correct unit of analysis is the
-within-pair difference, so the primary test is a paired t-test across the 9
-pairs, with Wilcoxon signed-rank as a distribution-free robustness check.
+WHAT CHANGED FROM THE EARLIER DESIGN, AND WHY IT MATTERS
+--------------------------------------------------------
+In this dataset the qPCR pools are labelled ``converter`` / ``non_converter``,
+i.e. by the larva's *realised outcome*, not by a *predicted* risk score. Two
+consequences follow and both are stated in the report rather than glossed:
 
-A pooled regression of c-fos on a continuous risk score across all 18 pools is
-deliberately NOT run: the risk score is not on a comparable scale between dose
-groups (low and high dose move tau in opposite directions), so pooling collapses
-the very contrast the pairing was designed to isolate.
+1. This is no longer an independent validation of the prediction model. It is a
+   validation of the **outcome variable the model predicts**: it asks whether
+   larvae scored as converted carry a molecular signature of elevated network
+   activity, or whether "converted" is just a behavioural scoring threshold.
+   That is a weaker claim about the model and a stronger claim about the label.
+2. The pools are drawn from the same ``zf_*`` cohort that trains the model, so
+   the two analyses share animals. Sample independence is not claimed.
+
+The pool counts are also unbalanced by construction, because conversion is rare
+in sham:
+
+    sham         0 converter pools, 2 non_converter pools per clutch
+    low_impact   1 converter pool,  2 non_converter pools per clutch
+    high_impact  2 converter pools, 2 non_converter pools per clutch
+
+So a balanced 9-pair design is impossible. The pairing that the data actually
+support is **6 matched pairs**: the (group x clutch) cells of the two injured
+groups, each contributing one converter value and one non-converter value, with
+technical replicate pools within a cell averaged first. Sham cells carry no
+converter pool at all and therefore cannot be paired; they are used instead as
+an unpaired reference level for the non-converter baseline, which tests the
+complementary question -- does c-fos track conversion, or merely injury?
 """
 from __future__ import annotations
 
@@ -20,44 +38,61 @@ from scipy import stats
 from . import config, io_data, plotting, statsbook as sb
 
 VALUE_COL = "cfos_fold_change"
+CONVERTER, NON_CONVERTER = "converter", "non_converter"
 
 
-def build_pairs(pools: pd.DataFrame | None = None) -> pd.DataFrame:
+def build_pairs(pools: pd.DataFrame | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Collapse replicate pools within each (group x clutch, pool_type) cell.
+
+    Returns (cell_table, pair_table). ``pair_table`` holds only the cells where
+    both pool types are present, which is the paired analysis set.
+    """
     if pools is None:
         pools = io_data.cfos_pools()
-    wide = pools.pivot_table(
-        index=["group", "clutch"], columns="risk_pool", values=VALUE_COL, observed=True
+
+    cells = (
+        pools.groupby(["group", "clutch", "pool_type"], observed=True)
+        .agg(
+            fold_change=(VALUE_COL, "mean"),
+            ddct=("delta_ddct", "mean"),
+            n_pools=(VALUE_COL, "size"),
+            n_larvae=("n_larvae_in_pool", "sum"),
+        )
+        .reset_index()
+    )
+
+    wide = cells.pivot_table(
+        index=["group", "clutch"], columns="pool_type", values="fold_change", observed=True
     ).reset_index()
-    ddct = pools.pivot_table(
-        index=["group", "clutch"], columns="risk_pool", values="delta_ddct", observed=True
-    ).reset_index().rename(columns={"high_risk": "ddct_high", "low_risk": "ddct_low"})
-    wide = wide.merge(ddct, on=["group", "clutch"])
-    wide["diff"] = wide["high_risk"] - wide["low_risk"]
-    wide["log2_high"] = np.log2(wide["high_risk"])
-    wide["log2_low"] = np.log2(wide["low_risk"])
-    wide["log2_diff"] = wide["log2_high"] - wide["log2_low"]
-    wide["ratio"] = wide["high_risk"] / wide["low_risk"]
-    return wide.sort_values(["group", "clutch"]).reset_index(drop=True)
+    counts = cells.pivot_table(
+        index=["group", "clutch"], columns="pool_type", values="n_pools", observed=True
+    ).reset_index().rename(columns={CONVERTER: "n_conv_pools", NON_CONVERTER: "n_nonconv_pools"})
+    wide = wide.merge(counts, on=["group", "clutch"], how="left")
+
+    have_both = wide[CONVERTER].notna() & wide[NON_CONVERTER].notna()
+    pairs = wide[have_both].copy()
+    pairs["diff"] = pairs[CONVERTER] - pairs[NON_CONVERTER]
+    pairs["log2_conv"] = np.log2(pairs[CONVERTER])
+    pairs["log2_nonconv"] = np.log2(pairs[NON_CONVERTER])
+    pairs["log2_diff"] = pairs["log2_conv"] - pairs["log2_nonconv"]
+    pairs["ratio"] = pairs[CONVERTER] / pairs[NON_CONVERTER]
+
+    return cells, pairs.sort_values(["group", "clutch"]).reset_index(drop=True)
 
 
 def _paired_test(d: pd.Series, label: str, scope: str, value_name: str) -> dict:
     n = len(d)
     mean = float(d.mean())
     sd = float(d.std(ddof=1))
-    # a paired t-test is a one-sample t-test on the within-pair differences
-    t, p = stats.ttest_1samp(d, 0.0)
+    t, p = stats.ttest_1samp(d, 0.0)  # paired t == one-sample t on the differences
     ci = stats.t.interval(0.95, n - 1, loc=mean, scale=sd / np.sqrt(n))
     dz = mean / sd if sd > 0 else np.nan
 
-    if n >= 3:
-        try:
-            w, pw = stats.wilcoxon(d, zero_method="wilcox", alternative="two-sided")
-        except ValueError:
-            w, pw = np.nan, np.nan
-    else:
+    try:
+        w, pw = stats.wilcoxon(d, zero_method="wilcox", alternative="two-sided")
+    except ValueError:
         w, pw = np.nan, np.nan
-
-    sh_w, sh_p = (stats.shapiro(d) if n >= 3 else (np.nan, np.nan))
+    sh_w, sh_p = stats.shapiro(d) if n >= 3 else (np.nan, np.nan)
 
     sb.record("3", scope, "n_pairs", n, n=n, notes=label)
     sb.record("3", scope, f"mean_{value_name}_difference", mean, ci_low=float(ci[0]),
@@ -82,51 +117,104 @@ def _paired_test(d: pd.Series, label: str, scope: str, value_name: str) -> dict:
             "shapiro_p": float(sh_p)}
 
 
+def _non_converter_baseline(cells: pd.DataFrame) -> dict:
+    """Does c-fos track conversion, or merely injury?
+
+    Compares non-converter pools of injured groups against non-converter pools of
+    sham. If injury alone raised c-fos, injured non-converters would sit above
+    sham non-converters. If the signal is specific to conversion, they will not.
+    """
+    nc = cells[cells["pool_type"] == NON_CONVERTER]
+    sham = nc[nc["group"] == "sham"]["fold_change"]
+    inj = nc[nc["group"].isin(config.INJURED)]["fold_change"]
+
+    t, p = stats.ttest_ind(inj, sham, equal_var=False)
+    psd = np.sqrt((inj.var(ddof=1) + sham.var(ddof=1)) / 2)
+    d = (inj.mean() - sham.mean()) / psd if psd > 0 else np.nan
+    diff = float(inj.mean() - sham.mean())
+    se = np.sqrt(inj.var(ddof=1) / len(inj) + sham.var(ddof=1) / len(sham))
+    dof = len(inj) + len(sham) - 2
+    ci = stats.t.interval(0.95, dof, loc=diff, scale=se)
+
+    sb.record("3", "cfos_noncoverter_baseline", "injured_minus_sham_noncoverters", diff,
+              ci_low=float(ci[0]), ci_high=float(ci[1]), n=len(inj) + len(sham),
+              test="Welch t-test, non-converter pools only (injured vs sham)",
+              statistic=float(t), p_value=float(p),
+              effect_size_name="Cohen's d", effect_size=float(d),
+              notes="a NULL result here is the desired outcome: it shows c-fos tracks "
+                    "conversion rather than injury exposure")
+    print(f"  Non-converter baseline (injury without conversion): injured "
+          f"{inj.mean():.3f} vs sham {sham.mean():.3f}, Welch t = {t:+.3f}, p = {p:.4g}, "
+          f"d = {d:+.3f}")
+    sb.check("c-fos does not rise with injury alone (non-converters: injured == sham)",
+             bool(p > 0.05), f"p = {p:.4f}")
+    return {"n_inj": len(inj), "n_sham": len(sham), "mean_inj": float(inj.mean()),
+            "mean_sham": float(sham.mean()), "diff": diff,
+            "ci": (float(ci[0]), float(ci[1])), "t": float(t), "p": float(p), "d": float(d)}
+
+
 def run(pools: pd.DataFrame | None = None) -> dict:
-    sb.banner("STEP 3 -- paired c-fos pools (9 matched high_risk / low_risk pairs)")
-    pairs = build_pairs(pools)
+    sb.banner("STEP 3 -- c-fos pools: converter vs non-converter, matched within group x clutch")
+    raw = io_data.cfos_pools() if pools is None else pools
+    cells, pairs = build_pairs(raw)
+    raw.to_csv(config.TABLES / "step3_cfos_pools_raw.csv", index=False)
+    cells.to_csv(config.TABLES / "step3_cfos_cells.csv", index=False)
     pairs.to_csv(config.TABLES / "step3_cfos_pairs.csv", index=False)
 
-    n_cells = pairs.groupby(["group", "clutch"], observed=True).size()
-    sb.check("exactly one pair per group x clutch cell",
-             bool((n_cells == 1).all()) and len(pairs) == 9, f"{len(pairs)} pairs")
-    sb.record("3", "design", "n_pools", 9 * 2, notes="analysed as 9 pairs, NOT 18 independent units")
-    print(f"  pools: {len(pairs)*2} -> {len(pairs)} pairs (group x clutch)")
-    print(f"  larvae per pool: {io_data.cfos_pools()['n_larvae_in_pool'].unique().tolist()}")
+    n_pools = len(raw)
+    print(f"  {n_pools} pools, {int(raw['n_larvae_in_pool'].sum())} larvae "
+          f"({raw['n_larvae_in_pool'].unique().tolist()} per pool)")
+    print(f"  pool counts by cell:")
+    tab = raw.pivot_table(index=["group", "clutch"], columns="pool_type",
+                          values="pool_id", aggfunc="size", observed=True).fillna(0).astype(int)
+    print(tab.to_string())
+    print(f"  -> {len(pairs)} cells contain BOTH pool types and can be paired; "
+          f"{len(cells[cells['pool_type'] == CONVERTER])} converter cells exist in total")
 
-    out = {"pairs": pairs}
-    out["all"] = _paired_test(pairs["diff"], "All 9 pairs", "cfos_all_pairs", "fold_change")
-    out["all_log2"] = _paired_test(pairs["log2_diff"], "All 9 pairs, log2 scale",
+    sb.record("3", "design", "n_pools", n_pools,
+              notes="labelled by realised outcome (converter / non_converter)")
+    sb.record("3", "design", "n_paired_cells", len(pairs),
+              notes="group x clutch cells containing both pool types; replicate pools averaged")
+    sb.record("3", "design", "n_sham_converter_pools", 0 if raw[
+        (raw["group"] == "sham") & (raw["pool_type"] == CONVERTER)].empty else int(
+        len(raw[(raw["group"] == "sham") & (raw["pool_type"] == CONVERTER)])),
+              notes="sham conversion is too rare to form a pool, so sham cannot be paired")
+
+    sb.check("every paired cell has both pool types", bool(len(pairs) == 6), f"{len(pairs)} pairs")
+
+    out = {"pairs": pairs, "cells": cells, "raw": raw}
+    out["all"] = _paired_test(pairs["diff"], f"All {len(pairs)} injured pairs", "cfos_all_pairs",
+                              "fold_change")
+    out["all_log2"] = _paired_test(pairs["log2_diff"], f"All {len(pairs)} injured pairs, log2 scale",
                                    "cfos_all_pairs_log2", "log2_fold_change")
-
-    inj = pairs[pairs["group"].isin(config.INJURED)]
-    out["injured"] = _paired_test(inj["diff"], "Injured pairs only (low + high impact)",
-                                  "cfos_injured_pairs", "fold_change")
-
-    sham = pairs[pairs["group"] == "sham"]
-    out["sham"] = _paired_test(sham["diff"], "Sham pairs only (negative control)",
-                               "cfos_sham_pairs", "fold_change")
 
     for grp in config.INJURED:
         g = pairs[pairs["group"] == grp]
         sb.record("3", f"cfos_{grp}", "mean_fold_change_difference", float(g["diff"].mean()),
-                  n=len(g), notes=f"{grp}: descriptive only, 3 pairs is too few to test")
-        print(f"  {config.GROUP_LABELS[grp]}: mean high-low = {g['diff'].mean():+.4f} "
-              f"(3 pairs, descriptive only)")
+                  n=len(g), notes=f"{grp}: descriptive only, {len(g)} pairs is too few to test")
+        print(f"  {config.GROUP_LABELS[grp]}: mean converter - non-converter = "
+              f"{g['diff'].mean():+.4f} ({len(g)} pairs, descriptive only)")
 
-    # how many pairs run in the expected direction
-    n_pos = int((inj["diff"] > 0).sum())
-    p_sign = float(stats.binomtest(n_pos, len(inj), 0.5).pvalue)
-    sb.record("3", "cfos_injured_pairs", "n_pairs_high_gt_low", n_pos, n=len(inj),
+    out["baseline"] = _non_converter_baseline(cells)
+
+    n_pos = int((pairs["diff"] > 0).sum())
+    p_sign = float(stats.binomtest(n_pos, len(pairs), 0.5).pvalue)
+    sb.record("3", "cfos_all_pairs", "n_pairs_converter_gt_nonconverter", n_pos, n=len(pairs),
               test="exact binomial sign test", p_value=p_sign,
-              notes="direction consistency across injured pairs")
-    print(f"  direction: {n_pos}/{len(inj)} injured pairs have high_risk > low_risk "
+              notes="direction consistency across paired cells")
+    print(f"  direction: {n_pos}/{len(pairs)} pairs have converter > non-converter "
           f"(sign test p = {p_sign:.4g})")
+    out["n_positive"] = n_pos
+    out["p_sign"] = p_sign
 
-    print("  NOTE: no pooled continuous risk-score regression across the 18 pools is run "
-          "(risk score is not comparable across dose groups).")
+    print("  NOTE: no pooled continuous risk-score regression is run; pools are labelled by "
+          "realised outcome, and the risk score is not comparable across dose groups.")
     sb.record("3", "design", "pooled_risk_regression_run", "no",
-              notes="deliberately omitted: risk score not comparable between dose groups")
+              notes="deliberately omitted: pools are outcome-labelled and the risk score is "
+                    "not comparable between dose groups")
+    sb.record("3", "design", "shares_animals_with_model_cohort", "yes",
+              notes="single zf_* cohort; this validates the OUTCOME LABEL, not the model's "
+                    "predictions on unseen animals")
 
-    plotting.fig_cfos_paired(pairs)
+    plotting.fig_cfos_paired(pairs, cells)
     return out

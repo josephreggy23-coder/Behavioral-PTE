@@ -218,6 +218,87 @@ def nested_cv(
 
 
 # --------------------------------------------------------------------------
+# Nested cross-validation WITH model selection
+# --------------------------------------------------------------------------
+def nested_cv_select_model(
+    X: pd.DataFrame,
+    y: np.ndarray,
+    groups: np.ndarray,
+    candidates: dict[str, list[str]],
+    *,
+    outer_splits: int = config.N_OUTER_FOLDS,
+    inner_splits: int = config.N_INNER_FOLDS,
+    C_grid: list[float] | None = None,
+    seed: int = config.SEED,
+    random_outer: bool = False,
+) -> dict:
+    """Choose the feature set AND the penalty inside each outer training fold.
+
+    Reading an ablation table and then quoting the winning row is selection on
+    the test folds: the winner is partly chosen by the noise in those same folds,
+    so its AUC is optimistic. This routine instead treats "which predictors to
+    use" as one more hyper-parameter, tuned on the inner folds only. The outer
+    AUC it returns is therefore an honest estimate of the whole procedure,
+    selection included, and it is the right number to quote for the best
+    achievable accuracy on this design.
+    """
+    C_grid = C_grid or config.C_GRID
+    outer = GroupKFold(n_splits=outer_splits)
+    splits = list(outer.split(X, y, groups))
+
+    oof = np.full(len(y), np.nan)
+    fold_rows = []
+    for k, (tr, te) in enumerate(splits):
+        inner = GroupKFold(n_splits=inner_splits)
+        inner_splits_list = list(inner.split(X.iloc[tr], y[tr], groups[tr]))
+
+        best = (-np.inf, None, None)
+        for name, feats in candidates.items():
+            for C in C_grid:
+                fs = []
+                for itr, iva in inner_splits_list:
+                    pipe = make_pipeline(feats, C=C, seed=seed)
+                    pipe.fit(X.iloc[tr][feats].iloc[itr], y[tr][itr])
+                    fs.append(
+                        _safe_auc(y[tr][iva], pipe.predict_proba(
+                            X.iloc[tr][feats].iloc[iva])[:, 1])
+                    )
+                score = float(np.nanmean(fs)) if np.any(np.isfinite(fs)) else -np.inf
+                if score > best[0]:
+                    best = (score, name, C)
+
+        _, sel_name, sel_C = best
+        feats = candidates[sel_name]
+        pipe = make_pipeline(feats, C=sel_C, seed=seed).fit(X.iloc[tr][feats], y[tr])
+        p = pipe.predict_proba(X.iloc[te][feats])[:, 1]
+        oof[te] = p
+        fold_rows.append(
+            {
+                "fold": k,
+                "held_out": str(np.unique(groups[te])[0]),
+                "n_test": int(len(te)),
+                "n_events_test": int(y[te].sum()),
+                "selected_model": sel_name,
+                "selected_C": sel_C,
+                "inner_auc": best[0],
+                "auc": _safe_auc(y[te], p),
+            }
+        )
+
+    folds = pd.DataFrame(fold_rows)
+    return {
+        "oof": oof,
+        "folds": folds,
+        "mean_fold_auc": float(np.nanmean(folds["auc"])),
+        "sd_fold_auc": float(np.nanstd(folds["auc"], ddof=1)) if len(folds) > 1 else np.nan,
+        "min_fold_auc": float(np.nanmin(folds["auc"])),
+        "max_fold_auc": float(np.nanmax(folds["auc"])),
+        "pooled_auc": _safe_auc(y, oof),
+        "brier": float(brier_score_loss(y, oof)),
+    }
+
+
+# --------------------------------------------------------------------------
 # Permutation test
 # --------------------------------------------------------------------------
 def _shuffle_within_groups(y: np.ndarray, groups: np.ndarray, rng: np.random.Generator):
@@ -231,7 +312,12 @@ def _shuffle_within_groups(y: np.ndarray, groups: np.ndarray, rng: np.random.Gen
 def _one_permutation(X, y, groups, feature_cols, seed_i, kwargs):
     rng = np.random.default_rng(seed_i)
     y_perm = _shuffle_within_groups(y, groups, rng)
-    res = nested_cv(X, y_perm, groups, feature_cols, **kwargs)
+    # a dict of candidate feature sets means the whole selection procedure is
+    # permuted, which is the only way to get an honest null for a selected model
+    if isinstance(feature_cols, dict):
+        res = nested_cv_select_model(X, y_perm, groups, feature_cols, **kwargs)
+    else:
+        res = nested_cv(X, y_perm, groups, feature_cols, **kwargs)
     return res["pooled_auc"], res["mean_fold_auc"]
 
 

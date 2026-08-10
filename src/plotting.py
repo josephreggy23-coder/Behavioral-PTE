@@ -197,35 +197,61 @@ def fig_fold_auc(comparison: pd.DataFrame, folds_long: pd.DataFrame) -> str:
 # ==========================================================================
 # STEP 3
 # ==========================================================================
-def fig_cfos_paired(pairs: pd.DataFrame) -> str:
-    fig, axes = plt.subplots(1, 2, figsize=(10.0, 4.2))
+def fig_cfos_paired(pairs: pd.DataFrame, cells: pd.DataFrame) -> str:
+    fig, axes = plt.subplots(1, 3, figsize=(13.5, 4.2))
 
+    # --- panel 1: the paired cells --------------------------------------
     ax = axes[0]
-    for i, r in enumerate(pairs.itertuples()):
+    for r in pairs.itertuples():
         col = config.GROUP_COLORS[r.group]
-        ax.plot([0, 1], [r.low_risk, r.high_risk], "-o", color=col, ms=5, alpha=0.85, lw=1.5)
-        ax.annotate(f"{r.clutch[-1]}", (1.02, r.high_risk), fontsize=6.5, color=col,
-                    va="center")
-    ax.set(xticks=[0, 1], xticklabels=["low_risk pool", "high_risk pool"],
+        ax.plot([0, 1], [getattr(r, "non_converter"), getattr(r, "converter")],
+                "-o", color=col, ms=5, alpha=0.85, lw=1.5)
+        ax.annotate(f"{r.clutch[-1]}", (1.02, getattr(r, "converter")), fontsize=6.5,
+                    color=col, va="center")
+    sham_nc = cells[(cells["group"] == "sham") & (cells["pool_type"] == "non_converter")]
+    ax.axhspan(sham_nc["fold_change"].min(), sham_nc["fold_change"].max(),
+               color=config.GROUP_COLORS["sham"], alpha=0.12, lw=0, zorder=0)
+    ax.axhline(sham_nc["fold_change"].mean(), color=config.GROUP_COLORS["sham"], ls=":", lw=1.2)
+    ax.set(xticks=[0, 1], xticklabels=["non-converter\npool", "converter\npool"],
            ylabel="c-fos (fosab) fold change vs rpl13a",
-           title=f"Paired pools: {len(pairs)} group x clutch cells")
-    ax.axhline(1.0, color="0.6", ls=":", lw=1)
+           title=f"Matched pools: {len(pairs)} injured group x clutch cells\n"
+                 "(shaded band = sham non-converter range)")
     ax.set_xlim(-0.25, 1.25)
     handles = [Line2D([], [], color=config.GROUP_COLORS[g], marker="o",
-                      label=config.GROUP_LABELS[g]) for g in config.GROUPS]
+                      label=config.GROUP_LABELS[g]) for g in config.INJURED]
     ax.legend(handles=handles, fontsize=7.5)
 
+    # --- panel 2: within-pair differences -------------------------------
     ax = axes[1]
-    order = [g for g in config.GROUPS]
-    for i, g in enumerate(order):
+    for i, g in enumerate(config.INJURED):
         d = pairs[pairs["group"] == g]["diff"]
         ax.scatter(np.full(len(d), i) + np.linspace(-0.07, 0.07, len(d)), d,
-                   color=config.GROUP_COLORS[g], s=45, zorder=3)
+                   color=config.GROUP_COLORS[g], s=55, zorder=3)
         ax.hlines(d.mean(), i - 0.2, i + 0.2, color="k", lw=2, zorder=4)
     ax.axhline(0, color="0.5", ls="--", lw=1)
-    ax.set(xticks=range(len(order)), xticklabels=[config.GROUP_LABELS[g] for g in order],
-           ylabel="high_risk - low_risk fold change",
-           title="Within-pair difference by group\n(black bar = group mean, n = 3 pairs each)")
+    ax.set(xticks=range(len(config.INJURED)),
+           xticklabels=[config.GROUP_LABELS[g] for g in config.INJURED],
+           ylabel="converter - non-converter fold change",
+           title="Within-pair difference by dose\n(black bar = group mean, 3 pairs each)")
+
+    # --- panel 3: the specificity control -------------------------------
+    ax = axes[2]
+    nc = cells[cells["pool_type"] == "non_converter"]
+    cv = cells[cells["pool_type"] == "converter"]
+    buckets = [
+        ("Sham\nnon-conv.", nc[nc["group"] == "sham"]["fold_change"],
+         config.GROUP_COLORS["sham"]),
+        ("Injured\nnon-conv.", nc[nc["group"].isin(config.INJURED)]["fold_change"], "#7f7f7f"),
+        ("Injured\nconverter", cv["fold_change"], config.POOL_COLORS["converter"]),
+    ]
+    for i, (lbl, vals, col) in enumerate(buckets):
+        ax.scatter(np.full(len(vals), i) + np.linspace(-0.08, 0.08, len(vals)), vals,
+                   color=col, s=45, zorder=3)
+        ax.hlines(vals.mean(), i - 0.22, i + 0.22, color="k", lw=2, zorder=4)
+    ax.axhline(1.0, color="0.6", ls=":", lw=1)
+    ax.set(xticks=range(len(buckets)), xticklabels=[b[0] for b in buckets],
+           ylabel="c-fos fold change",
+           title="Specificity: c-fos tracks conversion,\nnot injury exposure")
     fig.tight_layout()
     return _save(fig, "fig08_cfos_paired.png")
 
@@ -307,10 +333,15 @@ def fig_converter_trajectories(fits: pd.DataFrame, outcomes: pd.DataFrame) -> st
 def fig_operations(sl: pd.DataFrame) -> str:
     fig, axes = plt.subplots(1, 4, figsize=(14.0, 3.4))
     x = np.arange(len(sl))
-    labels = [f"{r.clutch[-1]}\n{r.timepoint_h:g}h" for r in sl.itertuples()]
+    labels = [
+        f"{r.clutch[-1]}\n" + (f"{r.timepoint_h:g}h" if np.isfinite(r.timepoint_h) else "outcome")
+        for r in sl.itertuples()
+    ]
     # neutral clutch palette -- the group colours are reserved for dose groups
     clutch_palette = dict(zip(config.CLUTCHES, ["#8da0cb", "#66c2a5", "#fc8d62"]))
     colors = [clutch_palette.get(c, "#999999") for c in sl["clutch"]]
+    # outcome sessions are a different kind of work; mark them
+    hatches = ["//" if k == "outcome" else "" for k in sl.get("session_kind", [""] * len(sl))]
 
     for ax, col, ylab, title in [
         (axes[0], "fish_per_hour", "Fish / hour", "Throughput"),
@@ -318,18 +349,24 @@ def fig_operations(sl: pd.DataFrame) -> str:
         (axes[2], "cost_per_fish_usd", "USD / fish", "Consumables cost"),
         (axes[3], "fish_lost_this_session", "Fish lost", "Attrition"),
     ]:
-        ax.bar(x, sl[col], color=colors)
+        bars = ax.bar(x, sl[col], color=colors)
+        for b, h in zip(bars, hatches):
+            if h:
+                b.set_hatch(h)
+                b.set_edgecolor("white")
         ax.axhline(sl[col].mean(), color="k", ls="--", lw=1,
                    label=f"mean {sl[col].mean():.2f}")
         ax.set(xticks=x, ylabel=ylab, title=title)
         ax.set_xticklabels(labels, fontsize=6)
         ax.legend(fontsize=7)
-    fig.suptitle("Operational metrics per session (clutch / timepoint)", fontsize=10)
+    fig.suptitle("Operational metrics per session (clutch / session; hatched = outcome recording)",
+                 fontsize=10)
     fig.tight_layout()
     return _save(fig, "fig12_operations.png")
 
 
-def fig_ptz(summary: pd.DataFrame) -> str:
+def fig_ptz(summary: pd.DataFrame, latencies: dict | None = None) -> str:
+    latencies = latencies or {}
     fig, axes = plt.subplots(1, 2, figsize=(9.0, 3.8))
     ax = axes[0]
     x = np.arange(len(summary))
@@ -341,14 +378,16 @@ def fig_ptz(summary: pd.DataFrame) -> str:
         ax.text(i, 0.03, f"{int(r.n_seized)}/{int(r.n)}", ha="center", fontsize=8, color="white")
     ax.set(xticks=x, xticklabels=[config.GROUP_LABELS[g] for g in summary["group"]],
            ylabel="Proportion seizing", ylim=(0, 1.05),
-           title="PTZ challenge (SECONDARY, UNDERPOWERED)\nWilson 95% CI")
+           title="PTZ challenge (secondary outcome)\nWilson 95% CI")
     ax = axes[1]
-    ax.axis("off")
-    ax.text(0.0, 0.95,
-            "Underpowered by design:\n"
-            f"n = {int(summary['n'].sum())} across 3 groups\n"
-            "Interpret as a directional check only;\n"
-            "the epileptogenesis claim does not rest on it.",
-            fontsize=9, va="top")
+    ax.set(xlabel="PTZ latency to first seizure (s)", ylabel="Larvae",
+           title="Latency by group")
+    bins = np.linspace(0, 1800, 13)
+    for g in config.GROUPS:
+        vals = latencies.get(g)
+        if vals is not None and len(vals):
+            ax.hist(vals, bins=bins, alpha=0.55, color=config.GROUP_COLORS[g],
+                    label=f"{config.GROUP_LABELS[g]} (median {np.median(vals):.0f} s)")
+    ax.legend(fontsize=7)
     fig.tight_layout()
     return _save(fig, "fig13_ptz.png")

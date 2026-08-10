@@ -21,7 +21,7 @@ SEED = 20260809
 # Paths
 # --------------------------------------------------------------------------
 ROOT = Path(__file__).resolve().parents[1]
-DATA_XLSX = ROOT / "realdata.xlsx"
+DATA_XLSX = ROOT / "tbidataset.xlsx"
 
 RESULTS = ROOT / "results"
 FIGURES = RESULTS / "figures"
@@ -39,7 +39,7 @@ RESULTS_MD = ROOT / "RESULTS.md"
 GROUPS = ["sham", "low_impact", "high_impact"]
 INJURED = ["low_impact", "high_impact"]
 CLUTCHES = ["clutch_A", "clutch_B", "clutch_C"]
-TIMEPOINTS = [-1.0, 0.5, 1.0, 5.0, 24.0]
+TIMEPOINTS = [-1.0, 0.5, 24.0]
 BASELINE_TP = -1.0  # pre-injury session: every fish is its own control
 N_TRIALS = 30
 N_BLOCKS = 6
@@ -82,7 +82,11 @@ GROUP_LABELS = {
     "high_impact": "High impact",
 }
 OUTCOME_COLORS = {0: "#4c9f70", 1: "#b5179e"}
-RISK_COLORS = {"low_risk": "#4c72b0", "high_risk": "#c44e52"}
+
+# c-fos pools are now defined by realised outcome, not by predicted risk
+POOL_TYPES = ["non_converter", "converter"]
+POOL_LABELS = {"non_converter": "Non-converter pool", "converter": "Converter pool"}
+POOL_COLORS = {"non_converter": "#4c9f70", "converter": "#b5179e"}
 
 
 def apply_style() -> None:

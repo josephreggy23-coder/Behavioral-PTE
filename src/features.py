@@ -72,9 +72,10 @@ def build_fish_table(fits: pd.DataFrame, tau_col: str = "decay_constant_fit") ->
     for tp in config.DELTA_TPS:
         tbl[f"dtau_{tp:g}"] = tbl[f"tau_{tp:g}"] - tbl["pre_tau"]
 
-    oc = io_data.outcomes().set_index("fish_id")[
-        ["converted", "burst_events_per_hour_6dpf"]
-    ]
+    keep = ["converted", "burst_events_per_hour"]
+    if "ptz_challenged" in io_data.outcomes().columns:
+        keep.append("ptz_challenged")
+    oc = io_data.outcomes().set_index("fish_id")[keep]
     tbl = tbl.join(oc, how="left")
     tbl["dose"] = (tbl["group"] == "high_impact").astype(int)
     return tbl.reset_index()
@@ -122,7 +123,13 @@ def report_features(tbl: pd.DataFrame, model_df: pd.DataFrame, dropped: pd.DataF
     sb.record("2", "design_matrix", "n_excluded_incomplete", len(dropped),
               notes="missing a 0.5 h or 24 h session (attrition)")
 
-    sb.check("events per variable >= 9", epv >= 9, f"EPV = {epv:.1f}")
+    sb.check("events per variable >= 10 (conventional target)", epv >= 10, f"EPV = {epv:.1f}")
+    sb.check("events per variable >= 9 (accepted minimum)", epv >= 9, f"EPV = {epv:.1f}")
+    if epv < 9:
+        print(f"  NOTE: EPV = {epv:.1f} is below the conventional floor of 9-10 events per "
+              f"variable. The predictor set is held at {len(PREDICTORS)} by design rather than "
+              "trimmed, because each term answers a distinct pre-registered question; the "
+              "consequence is wider coefficient intervals, which are reported as such.")
     sb.check("outcome not degenerate (10-90% events)", 0.10 < ev / n < 0.90,
              f"event rate {ev/n:.2f}")
 

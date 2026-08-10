@@ -1,182 +1,195 @@
 step,analysis,quantity,value,ci_low,ci_high,n,test,statistic,df,p_value,effect_size_name,effect_size,notes
-1,curve_fit,n_sessions,650,,,650.0,,,,,,,"fish_* cohort, all timepoints"
-1,curve_fit,n_converged,650,,,650.0,,,,,,,
-1,curve_fit,convergence_rate,1.0,,,650.0,,,,,,,"scipy.optimize.curve_fit, bounded, 4 starting points per session"
-1,curve_fit,r2_median,0.7963425759849168,,,650.0,,,,,,,
-1,curve_fit,r2_q05,0.5044743523275542,,,650.0,,,,,,,
-1,curve_fit,r2_min,0.1071620748554235,,,650.0,,,,,,,
-1,curve_fit,n_tau_at_bound,1,,,650.0,,,,,,,
-1,tau_agreement,pearson_r,0.9999910869108465,,,650.0,Pearson correlation,0.9999910869108465,,0.0,,,refit tau vs supplied fish_features.decay_constant
-1,tau_agreement,spearman_rho,0.999999737823651,,,650.0,Spearman correlation,0.999999737823651,,0.0,,,
-1,tau_agreement,mean_bias_trials,-0.0006045821217316598,-0.0018137587898318553,0.0006045945463685358,650.0,one-sample t (paired difference),,,,,,refit minus supplied
-1,tau_agreement,limits_of_agreement_low,-0.031375733148183975,,,650.0,,,,,,,"Bland-Altman, bias -/+ 1.96 SD"
-1,tau_agreement,limits_of_agreement_high,0.030166568904720654,,,650.0,,,,,,,
-1,tau_agreement,sd_of_difference,0.015699566850230773,,,650.0,,,,,,,
-1,tau_agreement,median_abs_pct_error,0.00390265960761666,,,650.0,,,,,,,
-1,loglinear_failure,pct_trials_below_offset,28.102564102564102,,,650.0,,,,,,,points unusable after offset subtraction (y <= C)
-1,loglinear_failure,n_sessions_negative_tau,4,,,650.0,,,,,,,sign-inverted tau from log-linearisation
-1,loglinear_failure,n_sessions_undefined_tau,0,,,650.0,,,,,,,
-1,loglinear_failure,pearson_r_vs_supplied,-0.22941634338714437,,,650.0,Pearson correlation,-0.22941634338714437,,3.2821034297486614e-09,,,log-linearised tau vs supplied tau; compare with the NLS r
-2,design_matrix,n_fish,81,,,81.0,,,,,,,"injured only, complete cases"
-2,design_matrix,n_events,36,,,81.0,,,,,,,
-2,design_matrix,event_rate,0.4444444444444444,,,81.0,,,,,,,
-2,design_matrix,events_per_variable,9.0,,,81.0,,,,,,,"4 predictors; >=10 is the conventional target, >=9 the accepted minimum"
-2,design_matrix,n_excluded_incomplete,7,,,,,,,,,,missing a 0.5 h or 24 h session (attrition)
-2,design_matrix,n_low_impact_clutch_A,13,,,,,,,,,,converted = 5
-2,design_matrix,n_low_impact_clutch_B,15,,,,,,,,,,converted = 6
-2,design_matrix,n_low_impact_clutch_C,14,,,,,,,,,,converted = 6
-2,design_matrix,n_high_impact_clutch_A,13,,,,,,,,,,converted = 4
-2,design_matrix,n_high_impact_clutch_B,12,,,,,,,,,,converted = 5
-2,design_matrix,n_high_impact_clutch_C,14,,,,,,,,,,converted = 10
-2,design_matrix,max_abs_predictor_correlation,0.7395329494699892,,,81.0,,,,,,,
-2,assumptions,vif_dose,2.547092002239026,,,81.0,,,,,,,
-2,assumptions,vif_pre_tau,1.1627362612797032,,,81.0,,,,,,,
-2,assumptions,vif_dtau_0.5,4.099715003535305,,,81.0,,,,,,,
-2,assumptions,vif_dtau_24,2.270553769989451,,,81.0,,,,,,,
-2,assumptions,max_abs_unpenalised_coef,7.730814344490431,,,81.0,,,,,,,separation diagnostic; |coef| > 10 suggests quasi-separation
-2,unpenalised_logit,coef_const,-7.730814344490431,-11.159496925803966,-4.302131763176897,81.0,"Wald z (statsmodels Logit, unpenalised)",-4.4192243892585905,,9.905575803399824e-06,odds ratio (raw units),0.0004390864038768966,reference only; the reported model is ridge-penalised
-2,unpenalised_logit,coef_dose,3.107056582580642,0.8701028097359895,5.3440103554252945,81.0,"Wald z (statsmodels Logit, unpenalised)",2.722326707736157,,0.006482402138916456,odds ratio (raw units),22.355146937543875,reference only; the reported model is ridge-penalised
-2,unpenalised_logit,coef_pre_tau,1.0088800508500868,0.555322801027136,1.4624373006730376,81.0,"Wald z (statsmodels Logit, unpenalised)",4.359689025275174,,1.3024740384552001e-05,odds ratio (raw units),2.742527802736112,reference only; the reported model is ridge-penalised
-2,unpenalised_logit,coef_dtau_0.5,0.0937733754240446,-0.2093015766837429,0.3968483275318321,81.0,"Wald z (statsmodels Logit, unpenalised)",0.6064256952336851,,0.5442321100188198,odds ratio (raw units),1.098310813488762,reference only; the reported model is ridge-penalised
-2,unpenalised_logit,coef_dtau_24,0.7539431654643092,0.3053064504014664,1.202579880527152,81.0,"Wald z (statsmodels Logit, unpenalised)",3.293759518752672,,0.0009885703629123764,odds ratio (raw units),2.125364177764271,reference only; the reported model is ridge-penalised
-2,assumptions,quartile_event_rates_pre_tau,0.238;0.350;0.450;0.750,,,81.0,,,,,,,monotone
-2,assumptions,quartile_event_rates_dtau_0.5,0.381;0.500;0.350;0.550,,,81.0,,,,,,,non-monotone (linear logit is an approximation)
-2,assumptions,quartile_event_rates_dtau_24,0.238;0.450;0.450;0.650,,,81.0,,,,,,,monotone
-2,nested_comparison,a_locomotion_only_mean_fold_auc,0.4155463953258071,,,81.0,nested CV (GroupKFold on clutch),,,,,,"(a) baseline_locomotion only; folds: clutch_C=0.323, clutch_B=0.420, clutch_A=0.503"
-2,nested_comparison,a_locomotion_only_sd_fold_auc,0.09027577723015655,,,81.0,,,,,,,
-2,nested_comparison,a_locomotion_only_pooled_oof_auc,0.38765432098765434,0.26524106002554276,0.5168023695738747,81.0,,,,,,,clutch-clustered bootstrap percentile CI
-2,nested_comparison,a_locomotion_only_brier,0.25184540303698777,,,81.0,,,,,,,
-2,nested_comparison,b_dose_only_mean_fold_auc,0.44006857793622506,,,81.0,nested CV (GroupKFold on clutch),,,,,,"(b) dose only; folds: clutch_C=0.354, clutch_B=0.509, clutch_A=0.458"
-2,nested_comparison,b_dose_only_sd_fold_auc,0.07864328743643614,,,81.0,,,,,,,
-2,nested_comparison,b_dose_only_pooled_oof_auc,0.38055555555555554,0.25609826547326553,0.5021821752774506,81.0,,,,,,,clutch-clustered bootstrap percentile CI
-2,nested_comparison,b_dose_only_brier,0.2508659501543007,,,81.0,,,,,,,
-2,nested_comparison,c_dose_pretau_mean_fold_auc,0.6774546939988116,,,81.0,nested CV (GroupKFold on clutch),,,,,,"(c) dose + pre_tau; folds: clutch_C=0.615, clutch_B=0.830, clutch_A=0.588"
-2,nested_comparison,c_dose_pretau_sd_fold_auc,0.13237165246143157,,,81.0,,,,,,,
-2,nested_comparison,c_dose_pretau_pooled_oof_auc,0.6067901234567902,0.4844318518743776,0.7248129026146267,81.0,,,,,,,clutch-clustered bootstrap percentile CI
-2,nested_comparison,c_dose_pretau_brier,0.24826973614396183,,,81.0,,,,,,,
-2,nested_comparison,d_dose_dtau_mean_fold_auc,0.6214875470390175,,,81.0,nested CV (GroupKFold on clutch),,,,,,"(d) dose + z_dtau; folds: clutch_C=0.630, clutch_B=0.659, clutch_A=0.575"
-2,nested_comparison,d_dose_dtau_sd_fold_auc,0.04263796237625671,,,81.0,,,,,,,
-2,nested_comparison,d_dose_dtau_pooled_oof_auc,0.6086419753086418,0.4840834957214268,0.7266418407043406,81.0,,,,,,,clutch-clustered bootstrap percentile CI
-2,nested_comparison,d_dose_dtau_brier,0.24442245629717332,,,81.0,,,,,,,
-2,nested_comparison,e_full_mean_fold_auc,0.8491563923549217,,,81.0,nested CV (GroupKFold on clutch),,,,,,"(e) full 4-predictor model; folds: clutch_C=0.880, clutch_B=0.909, clutch_A=0.758"
-2,nested_comparison,e_full_sd_fold_auc,0.0801090033089827,,,81.0,,,,,,,
-2,nested_comparison,e_full_pooled_oof_auc,0.832716049382716,0.7362603686635946,0.9161608472564319,81.0,,,,,,,clutch-clustered bootstrap percentile CI
-2,nested_comparison,e_full_brier,0.17274410671785656,,,81.0,,,,,,,
-2,leakage,random_split_mean_fold_auc,0.8646825396825397,,,81.0,5-fold random StratifiedKFold,,,,,,ignores clutch; reported only to quantify inflation
-2,leakage,random_split_pooled_auc,0.8561728395061728,,,81.0,,,,,,,
-2,leakage,clutch_split_mean_fold_auc,0.8491563923549217,,,81.0,GroupKFold on clutch,,,,,,
-2,leakage,inflation_auc,0.015526147327618034,,,81.0,,,,,,,random-split AUC minus clutch-split AUC
-2,permutation,observed_pooled_auc,0.832716049382716,,,81.0,,,,,,,
-2,permutation,null_mean_auc,0.4686185185185185,,,1000.0,,,,,,,
-2,permutation,null_sd_auc,0.08163768843448387,,,1000.0,,,,,,,
-2,permutation,null_95th_percentile,0.600648148148148,,,1000.0,,,,,,,
-2,permutation,p_value_pooled_auc,0.000999000999000999,,,81.0,"permutation test, 1000 label shuffles within clutch",0.832716049382716,,0.000999000999000999,,,p = (1 + #{null >= observed}) / (n_perm + 1)
-2,permutation,p_value_mean_fold_auc,0.000999000999000999,,,81.0,"permutation test, 1000 shuffles",0.8491563923549217,,0.000999000999000999,,,
+1,curve_fit,n_sessions,390,,,390.0,,,,,,,"fish_* cohort, all timepoints"
+1,curve_fit,n_converged,390,,,390.0,,,,,,,
+1,curve_fit,convergence_rate,1.0,,,390.0,,,,,,,"scipy.optimize.curve_fit, bounded, 4 starting points per session"
+1,curve_fit,r2_median,0.8363771915659548,,,390.0,,,,,,,
+1,curve_fit,r2_q05,0.6588527160784818,,,390.0,,,,,,,
+1,curve_fit,r2_min,0.3956291657578658,,,390.0,,,,,,,
+1,curve_fit,n_tau_at_bound,0,,,390.0,,,,,,,
+1,tau_agreement,pearson_r,0.9999999932406136,,,390.0,Pearson correlation,0.9999999932406136,,0.0,,,refit tau vs supplied fish_features.decay_constant
+1,tau_agreement,spearman_rho,0.999999393107645,,,390.0,Spearman correlation,0.999999393107645,,0.0,,,
+1,tau_agreement,mean_bias_trials,4.694801834533715e-05,1.2535799420319446e-05,8.136023727035486e-05,390.0,one-sample t (paired difference),,,,,,refit minus supplied
+1,tau_agreement,limits_of_agreement_low,-0.0006305368998665584,,,390.0,,,,,,,"Bland-Altman, bias -/+ 1.96 SD"
+1,tau_agreement,limits_of_agreement_high,0.0007244329365572328,,,390.0,,,,,,,
+1,tau_agreement,sd_of_difference,0.00034565557051627327,,,390.0,,,,,,,
+1,tau_agreement,median_abs_pct_error,0.004186493129337945,,,390.0,,,,,,,
+1,loglinear_failure,pct_trials_below_offset,26.188034188034187,,,390.0,,,,,,,points unusable after offset subtraction (y <= C)
+1,loglinear_failure,n_sessions_negative_tau,0,,,390.0,,,,,,,sign-inverted tau from log-linearisation
+1,loglinear_failure,n_sessions_undefined_tau,0,,,390.0,,,,,,,
+1,loglinear_failure,pearson_r_vs_supplied,-0.2516490918604108,,,390.0,Pearson correlation,-0.2516490918604108,,4.77913566993051e-07,,,log-linearised tau vs supplied tau; compare with the NLS r
+2,design_matrix,n_fish,82,,,82.0,,,,,,,"injured only, complete cases"
+2,design_matrix,n_events,34,,,82.0,,,,,,,
+2,design_matrix,event_rate,0.4146341463414634,,,82.0,,,,,,,
+2,design_matrix,events_per_variable,8.5,,,82.0,,,,,,,"4 predictors; >=10 is the conventional target, >=9 the accepted minimum"
+2,design_matrix,n_excluded_incomplete,6,,,,,,,,,,missing a 0.5 h or 24 h session (attrition)
+2,design_matrix,n_low_impact_clutch_A,14,,,,,,,,,,converted = 5
+2,design_matrix,n_low_impact_clutch_B,15,,,,,,,,,,converted = 5
+2,design_matrix,n_low_impact_clutch_C,14,,,,,,,,,,converted = 3
+2,design_matrix,n_high_impact_clutch_A,13,,,,,,,,,,converted = 7
+2,design_matrix,n_high_impact_clutch_B,13,,,,,,,,,,converted = 7
+2,design_matrix,n_high_impact_clutch_C,13,,,,,,,,,,converted = 7
+2,design_matrix,max_abs_predictor_correlation,0.7064932450466316,,,82.0,,,,,,,
+2,assumptions,vif_dose,2.3004375605358764,,,82.0,,,,,,,
+2,assumptions,vif_pre_tau,1.1648331609750522,,,82.0,,,,,,,
+2,assumptions,vif_dtau_0.5,2.4713670842865865,,,82.0,,,,,,,
+2,assumptions,vif_dtau_24,1.190579430065979,,,82.0,,,,,,,
+2,assumptions,max_abs_unpenalised_coef,6.220634886357055,,,82.0,,,,,,,separation diagnostic; |coef| > 10 suggests quasi-separation
+2,unpenalised_logit,coef_const,-6.220634886357055,-9.43460129992332,-3.0066684727907895,82.0,"Wald z (statsmodels Logit, unpenalised)",-3.793512056245967,,0.00014853141575463548,odds ratio (raw units),0.001987982673444217,reference only; the reported model is ridge-penalised
+2,unpenalised_logit,coef_dose,2.4516956628354087,0.6802534376334683,4.223137888037349,82.0,"Wald z (statsmodels Logit, unpenalised)",2.7126118661096443,,0.006675524532439952,odds ratio (raw units),11.608013317326522,reference only; the reported model is ridge-penalised
+2,unpenalised_logit,coef_pre_tau,0.7286699503683248,0.335595831926384,1.1217440688102656,82.0,"Wald z (statsmodels Logit, unpenalised)",3.6333271317873685,,0.0002797899222306739,odds ratio (raw units),2.0723224821047395,reference only; the reported model is ridge-penalised
+2,unpenalised_logit,coef_dtau_0.5,0.03399099596572524,-0.18737143278351326,0.25535342471496375,82.0,"Wald z (statsmodels Logit, unpenalised)",0.30095950910864283,,0.7634453708968398,odds ratio (raw units),1.034575291334797,reference only; the reported model is ridge-penalised
+2,unpenalised_logit,coef_dtau_24,0.26387639948692226,0.02935860658292619,0.4983941923909183,82.0,"Wald z (statsmodels Logit, unpenalised)",2.2053262268939706,,0.02743121072393885,odds ratio (raw units),1.3019672625336913,reference only; the reported model is ridge-penalised
+2,assumptions,quartile_event_rates_pre_tau,0.190;0.350;0.450;0.667,,,82.0,,,,,,,monotone
+2,assumptions,quartile_event_rates_dtau_0.5,0.524;0.450;0.400;0.286,,,82.0,,,,,,,monotone
+2,assumptions,quartile_event_rates_dtau_24,0.381;0.400;0.350;0.524,,,82.0,,,,,,,non-monotone (linear logit is an approximation)
+2,nested_comparison,a_locomotion_only_mean_fold_auc,0.39178240740740744,,,82.0,nested CV (GroupKFold on clutch),,,,,,"(a) baseline_locomotion only; folds: clutch_B=0.453, clutch_C=0.400, clutch_A=0.322"
+2,nested_comparison,a_locomotion_only_sd_fold_auc,0.06583715462030497,,,82.0,,,,,,,
+2,nested_comparison,a_locomotion_only_pooled_oof_auc,0.41789215686274506,0.2922716355282145,0.540505319148936,82.0,,,,,,,clutch-clustered bootstrap percentile CI
+2,nested_comparison,a_locomotion_only_brier,0.24924191409365423,,,82.0,,,,,,,
+2,nested_comparison,b_dose_only_mean_fold_auc,0.6231209150326799,,,82.0,nested CV (GroupKFold on clutch),,,,,,"(b) dose only; folds: clutch_B=0.604, clutch_C=0.674, clutch_A=0.592"
+2,nested_comparison,b_dose_only_sd_fold_auc,0.04410016901426811,,,82.0,,,,,,,
+2,nested_comparison,b_dose_only_pooled_oof_auc,0.6035539215686274,0.4771748310810811,0.7282108863771565,82.0,,,,,,,clutch-clustered bootstrap percentile CI
+2,nested_comparison,b_dose_only_brier,0.2454421203653237,,,82.0,,,,,,,
+2,nested_comparison,c_dose_pretau_mean_fold_auc,0.7884940087145971,,,82.0,nested CV (GroupKFold on clutch),,,,,,"(c) dose + pre_tau; folds: clutch_B=0.802, clutch_C=0.841, clutch_A=0.722"
+2,nested_comparison,c_dose_pretau_sd_fold_auc,0.060630277986958254,,,82.0,,,,,,,
+2,nested_comparison,c_dose_pretau_pooled_oof_auc,0.7726715686274509,0.6641927857001386,0.869061859193438,82.0,,,,,,,clutch-clustered bootstrap percentile CI
+2,nested_comparison,c_dose_pretau_brier,0.23864298815946566,,,82.0,,,,,,,
+2,nested_comparison,d_dose_dtau_mean_fold_auc,0.627389705882353,,,82.0,nested CV (GroupKFold on clutch),,,,,,"(d) dose + z_dtau; folds: clutch_B=0.547, clutch_C=0.735, clutch_A=0.600"
+2,nested_comparison,d_dose_dtau_sd_fold_auc,0.09714982225905204,,,82.0,,,,,,,
+2,nested_comparison,d_dose_dtau_pooled_oof_auc,0.6200980392156863,0.49103267503173526,0.7468043575252825,82.0,,,,,,,clutch-clustered bootstrap percentile CI
+2,nested_comparison,d_dose_dtau_brier,0.2381441631733788,,,82.0,,,,,,,
+2,nested_comparison,e_full_mean_fold_auc,0.7375816993464053,,,82.0,nested CV (GroupKFold on clutch),,,,,,"(e) full 4-predictor model; folds: clutch_B=0.667, clutch_C=0.829, clutch_A=0.717"
+2,nested_comparison,e_full_sd_fold_auc,0.08336408506032066,,,82.0,,,,,,,
+2,nested_comparison,e_full_pooled_oof_auc,0.7555147058823529,0.6468061903815581,0.8557692307692307,82.0,,,,,,,clutch-clustered bootstrap percentile CI
+2,nested_comparison,e_full_brier,0.19839807497768286,,,82.0,,,,,,,
+2,model_selection,mean_fold_auc,0.7866421568627452,,,82.0,nested CV with the feature set chosen on inner folds only,,,,,,"honest estimate for 'best model we could pick'; clutch_B->c_dose_pretau, clutch_C->c_dose_pretau, clutch_A->e_full"
+2,model_selection,sd_fold_auc,0.06367491865910596,,,82.0,,,,,,,
+2,model_selection,pooled_oof_auc,0.7463235294117647,0.6292725650042625,0.8484929653679654,82.0,,,,,,,
+2,model_selection,brier,0.23421891966988012,,,82.0,,,,,,,
+2,model_selection,naive_best_row_mean_fold_auc,0.7884940087145971,,,82.0,,,,,,,"(c) dose + pre_tau; OPTIMISTIC, chosen by looking at the reported folds"
+2,model_selection,selection_optimism,0.0018518518518518823,,,82.0,,,,,,,best-row AUC minus honestly-selected AUC
+2,model_selection_confusion,accuracy,0.7073170731707317,,,82.0,,,,,,,"out-of-fold, threshold 0.50, feature set selected inside each fold"
+2,model_selection_confusion,balanced_accuracy,0.6899509803921569,,,82.0,,,,,,,"out-of-fold, threshold 0.50, feature set selected inside each fold"
+2,model_selection_confusion,sensitivity,0.5882352941176471,,,82.0,,,,,,,"out-of-fold, threshold 0.50, feature set selected inside each fold"
+2,model_selection_confusion,specificity,0.7916666666666666,,,82.0,,,,,,,"out-of-fold, threshold 0.50, feature set selected inside each fold"
+2,model_selection_confusion,ppv,0.6666666666666666,,,82.0,,,,,,,"out-of-fold, threshold 0.50, feature set selected inside each fold"
+2,model_selection_confusion,npv,0.7307692307692307,,,82.0,,,,,,,"out-of-fold, threshold 0.50, feature set selected inside each fold"
+2,model_selection_confusion,tn_fp_fn_tp,38;10;14;20,,,82.0,,,,,,,
+2,leakage,random_split_mean_fold_auc,0.8284126984126985,,,82.0,5-fold random StratifiedKFold,,,,,,ignores clutch; reported only to quantify inflation
+2,leakage,random_split_pooled_auc,0.744485294117647,,,82.0,,,,,,,
+2,leakage,clutch_split_mean_fold_auc,0.7375816993464053,,,82.0,GroupKFold on clutch,,,,,,
+2,leakage,inflation_auc,0.09083099906629322,,,82.0,,,,,,,random-split AUC minus clutch-split AUC
+2,permutation,observed_pooled_auc,0.7555147058823529,,,82.0,,,,,,,
+2,permutation,null_mean_auc,0.49296384803921567,,,1000.0,,,,,,,
+2,permutation,null_sd_auc,0.0788313828138078,,,1000.0,,,,,,,
+2,permutation,null_95th_percentile,0.6237745098039215,,,1000.0,,,,,,,
+2,permutation,p_value_pooled_auc,0.000999000999000999,,,82.0,"permutation test, 1000 label shuffles within clutch",0.7555147058823529,,0.000999000999000999,,,p = (1 + #{null >= observed}) / (n_perm + 1)
+2,permutation,p_value_mean_fold_auc,0.000999000999000999,,,82.0,"permutation test, 1000 shuffles",0.7375816993464053,,0.000999000999000999,,,
 2,permutation,percentile_of_observed_in_null,100.0,,,1000.0,,,,,,,
-2,full_model,selected_C_full_data,0.03,,,81.0,,,,,,,chosen by clutch-held-out CV on the full set; the reported AUC does NOT use this
-2,full_model,coef_dose,0.0753044176559029,-0.08104946266139576,0.22766062081716698,81.0,ridge logistic (clutch-clustered bootstrap CI),,,,odds ratio per SD,1.078212327800068,"OR 95% CI [0.922, 1.256]; includes zero"
-2,full_model,coef_pre_tau,0.33138544348575577,0.19969567329182644,0.4297511689996343,81.0,ridge logistic (clutch-clustered bootstrap CI),,,,odds ratio per SD,1.392896571762394,"OR 95% CI [1.221, 1.537]; excludes zero"
-2,full_model,coef_dtau_0.5,0.16768875628536883,0.029282111132402193,0.28959539874632967,81.0,ridge logistic (clutch-clustered bootstrap CI),,,,odds ratio per SD,1.1825684863540977,"OR 95% CI [1.030, 1.336]; excludes zero"
-2,full_model,coef_dtau_24,0.2570251841569069,0.13305788344597003,0.3616966102213587,81.0,ridge logistic (clutch-clustered bootstrap CI),,,,odds ratio per SD,1.2930776914207687,"OR 95% CI [1.142, 1.436]; excludes zero"
-2,confusion_matrix,accuracy,0.7654320987654321,,,81.0,,,,,,,"out-of-fold predictions, threshold 0.50"
-2,confusion_matrix,balanced_accuracy,0.7555555555555555,,,81.0,,,,,,,"out-of-fold predictions, threshold 0.50"
-2,confusion_matrix,sensitivity,0.6666666666666666,,,81.0,,,,,,,"out-of-fold predictions, threshold 0.50"
-2,confusion_matrix,specificity,0.8444444444444444,,,81.0,,,,,,,"out-of-fold predictions, threshold 0.50"
-2,confusion_matrix,ppv,0.7741935483870968,,,81.0,,,,,,,"out-of-fold predictions, threshold 0.50"
-2,confusion_matrix,npv,0.76,,,81.0,,,,,,,"out-of-fold predictions, threshold 0.50"
-2,confusion_matrix,tn_fp_fn_tp,38;7;12;24,,,81.0,,,,,,,
-2,calibration,brier_score,0.17274410671785656,,,81.0,,,,,,,out-of-fold; 0.25 = uninformative at 50% prevalence
-2,confusion_matrix_youden,threshold,0.4719470471092606,,,81.0,,,,,,,"Youden-optimal operating point, selected on the out-of-fold predictions; mildly optimistic, reported as an operating-point illustration only"
-2,confusion_matrix_youden,accuracy,0.8148148148148148,,,81.0,,,,,,,threshold 0.472 (Youden)
-2,confusion_matrix_youden,balanced_accuracy,0.8166666666666667,,,81.0,,,,,,,threshold 0.472 (Youden)
-2,confusion_matrix_youden,sensitivity,0.8333333333333334,,,81.0,,,,,,,threshold 0.472 (Youden)
-2,confusion_matrix_youden,specificity,0.8,,,81.0,,,,,,,threshold 0.472 (Youden)
-2,confusion_matrix_youden,ppv,0.7692307692307693,,,81.0,,,,,,,threshold 0.472 (Youden)
-2,confusion_matrix_youden,npv,0.8571428571428571,,,81.0,,,,,,,threshold 0.472 (Youden)
-2,confusion_matrix_youden,tn_fp_fn_tp,36;9;6;30,,,81.0,,,,,,,
-2,sensitivity,global_z_mean_fold_auc,0.852628614577144,,,81.0,,,,,,,within-dose z fitted on the WHOLE dataset (mildly leaky); reported to show the fold-safe scaler costs nothing
-3,design,n_pools,18,,,,,,,,,,"analysed as 9 pairs, NOT 18 independent units"
-3,cfos_all_pairs,n_pairs,9,,,9.0,,,,,,,All 9 pairs
-3,cfos_all_pairs,mean_fold_change_difference,0.28555555555555556,0.008253534803808693,0.5628575763073025,9.0,paired t-test (one-sample on differences),2.374639355878137,8,0.04491995352087866,Cohen's dz,0.7915464519593791,All 9 pairs
-3,cfos_all_pairs,wilcoxon_fold_change,0.28555555555555556,,,9.0,Wilcoxon signed-rank (robustness check),6.0,,0.0546875,,,All 9 pairs
-3,cfos_all_pairs,shapiro_fold_change_differences,0.908558266997154,,,9.0,Shapiro-Wilk on within-pair differences,0.908558266997154,,0.305913859673824,,,normality assumption for the paired t-test
-3,cfos_all_pairs_log2,n_pairs,9,,,9.0,,,,,,,"All 9 pairs, log2 scale"
-3,cfos_all_pairs_log2,mean_log2_fold_change_difference,0.35044228158086826,0.045283895437533084,0.6556006677242034,9.0,paired t-test (one-sample on differences),2.6482029895658323,8,0.02933748612716929,Cohen's dz,0.8827343298552774,"All 9 pairs, log2 scale"
-3,cfos_all_pairs_log2,wilcoxon_log2_fold_change,0.35044228158086826,,,9.0,Wilcoxon signed-rank (robustness check),4.0,,0.02734375,,,"All 9 pairs, log2 scale"
-3,cfos_all_pairs_log2,shapiro_log2_fold_change_differences,0.9348975848268342,,,9.0,Shapiro-Wilk on within-pair differences,0.9348975848268342,,0.5293273207754027,,,normality assumption for the paired t-test
-3,cfos_injured_pairs,n_pairs,6,,,6.0,,,,,,,Injured pairs only (low + high impact)
-3,cfos_injured_pairs,mean_fold_change_difference,0.3908333333333333,-0.025663553020043972,0.8073302196867106,6.0,paired t-test (one-sample on differences),2.412188662979456,5,0.06069979832981498,Cohen's dz,0.9847718979376745,Injured pairs only (low + high impact)
-3,cfos_injured_pairs,wilcoxon_fold_change,0.3908333333333333,,,6.0,Wilcoxon signed-rank (robustness check),2.0,,0.09375,,,Injured pairs only (low + high impact)
-3,cfos_injured_pairs,shapiro_fold_change_differences,0.8413580151348904,,,6.0,Shapiro-Wilk on within-pair differences,0.8413580151348904,,0.13378050366734584,,,normality assumption for the paired t-test
-3,cfos_sham_pairs,n_pairs,3,,,3.0,,,,,,,Sham pairs only (negative control)
-3,cfos_sham_pairs,mean_fold_change_difference,0.075,-0.33357835662730995,0.48357835662730997,3.0,paired t-test (one-sample on differences),0.7898092238536356,2,0.5124075721582789,Cohen's dz,0.45599656800034594,Sham pairs only (negative control)
-3,cfos_sham_pairs,wilcoxon_fold_change,0.075,,,3.0,Wilcoxon signed-rank (robustness check),1.0,,0.5,,,Sham pairs only (negative control)
-3,cfos_sham_pairs,shapiro_fold_change_differences,0.9463255951500813,,,3.0,Shapiro-Wilk on within-pair differences,0.9463255951500813,,0.5534718065829463,,,normality assumption for the paired t-test
-3,cfos_low_impact,mean_fold_change_difference,0.5816666666666667,,,3.0,,,,,,,"low_impact: descriptive only, 3 pairs is too few to test"
-3,cfos_high_impact,mean_fold_change_difference,0.19999999999999996,,,3.0,,,,,,,"high_impact: descriptive only, 3 pairs is too few to test"
-3,cfos_injured_pairs,n_pairs_high_gt_low,5,,,6.0,exact binomial sign test,,,0.21875,,,direction consistency across injured pairs
-3,design,pooled_risk_regression_run,no,,,,,,,,,,deliberately omitted: risk score not comparable between dose groups
-4,baseline_equivalence,levene_tau,0.5632749855975743,,,133.0,Levene (median-centred) on baseline tau,0.5632749855975743,,0.5707246619020107,,,
-4,baseline_equivalence,shapiro_tau_sham,0.9597924245588887,,,45.0,Shapiro-Wilk,0.9597924245588887,,0.11994591162846047,,,
-4,baseline_equivalence,shapiro_tau_low_impact,0.8489350329391423,,,45.0,Shapiro-Wilk,0.8489350329391423,,3.437857463132212e-05,,,
-4,baseline_equivalence,shapiro_tau_high_impact,0.9475530959842201,,,43.0,Shapiro-Wilk,0.9475530959842201,,0.048553530023516187,,,
-4,baseline_equivalence,anova_tau,0.5426832565486469,,,133.0,one-way ANOVA on baseline tau,0.5426832565486469,"2,130",0.5824975127845462,eta squared,0.008279844974067722,a NON-significant result is the desired outcome here
-4,baseline_equivalence,kruskal_tau,0.521967883958439,,,133.0,Kruskal-Wallis (robustness),0.521967883958439,2,0.770293288901406,,,
-4,baseline_equivalence,anova_baseline_locomotion,2.1401041076691607,,,133.0,one-way ANOVA on pre-injury baseline_locomotion,2.1401041076691607,"2,130",0.12176921610962335,,,
-4,tau_dynamics,sham_t-1_mean,6.328396997520919,5.808314111658787,6.8484798833830505,45.0,,,,,,,SD = 1.780
-4,tau_dynamics,sham_t0.5_mean,6.193687520650533,5.304568458341533,7.082806582959533,44.0,,,,,,,SD = 3.009
-4,tau_dynamics,sham_t1_mean,6.027343338108416,5.188365300789895,6.866321375426937,43.0,,,,,,,SD = 2.807
-4,tau_dynamics,sham_t5_mean,7.44564983539187,6.221538469931504,8.669761200852236,44.0,,,,,,,SD = 4.143
-4,tau_dynamics,sham_t24_mean,7.229979477110242,6.08001830976097,8.379940644459515,43.0,,,,,,,SD = 3.847
-4,tau_dynamics,low_impact_t-1_mean,6.461166736746947,5.75729336336133,7.165040110132565,45.0,,,,,,,SD = 2.409
-4,tau_dynamics,low_impact_t0.5_mean,10.214441594767443,9.017587362473254,11.411295827061632,43.0,,,,,,,SD = 4.004
-4,tau_dynamics,low_impact_t1_mean,9.382903584448384,8.05653133675576,10.709275832141007,45.0,,,,,,,SD = 4.540
-4,tau_dynamics,low_impact_t5_mean,8.16786370068071,6.862534775358437,9.473192626002984,44.0,,,,,,,SD = 4.418
-4,tau_dynamics,low_impact_t24_mean,7.021164497627043,6.089853214355052,7.952475780899035,44.0,,,,,,,SD = 3.152
-4,tau_dynamics,high_impact_t-1_mean,6.020925553986249,5.475488237620968,6.56636287035153,43.0,,,,,,,SD = 1.825
-4,tau_dynamics,high_impact_t0.5_mean,3.283358127867263,2.639885642639487,3.9268306130950394,40.0,,,,,,,SD = 2.076
-4,tau_dynamics,high_impact_t1_mean,3.8423683215426663,2.9036490094168625,4.78108763366847,42.0,,,,,,,SD = 3.104
-4,tau_dynamics,high_impact_t5_mean,4.518554881778428,3.6085456063412407,5.428564157215615,43.0,,,,,,,SD = 3.045
-4,tau_dynamics,high_impact_t24_mean,4.415513926201679,3.6371016420138744,5.193926210389483,42.0,,,,,,,SD = 2.574
-4,tau_change_from_baseline,sham_delta_t0.5,-0.13944108846827544,-0.8237348987686869,0.5448527218321361,44.0,paired t-test vs own pre-injury baseline,-0.41094885140398124,43,0.6831508961175692,Cohen's dz,-0.06195287036975099,
-4,tau_change_from_baseline,sham_delta_t1,-0.3396951352371225,-1.1297528503954675,0.4503625799212225,43.0,paired t-test vs own pre-injury baseline,-0.867699313361022,42,0.3904898062790471,Cohen's dz,-0.1323229047661386,
-4,tau_change_from_baseline,sham_delta_t5,1.0939973734490644,0.10947396104915386,2.078520785848975,44.0,paired t-test vs own pre-injury baseline,2.240938042938365,43,0.03024747946895974,Cohen's dz,0.33783412122090434,
-4,tau_change_from_baseline,sham_delta_t24,0.8714186700338413,-0.0799771880072403,1.822814528074923,43.0,paired t-test vs own pre-injury baseline,1.8484357048921916,42,0.07158796639602774,Cohen's dz,0.2818838023477996,
-4,tau_change_from_baseline,low_impact_delta_t0.5,3.741964602702709,2.767011602273647,4.716917603131771,43.0,paired t-test vs own pre-injury baseline,7.745594191704917,42,1.2718760997695538e-09,Cohen's dz,1.1811920406115266,
-4,tau_change_from_baseline,low_impact_delta_t1,2.9217368477014363,1.6319828597624222,4.211490835640451,45.0,paired t-test vs own pre-injury baseline,4.56550145142365,44,3.989648611517166e-05,Cohen's dz,0.680584773117149,
-4,tau_change_from_baseline,low_impact_delta_t5,1.7181493732369995,0.638244712806626,2.798054033667373,44.0,paired t-test vs own pre-injury baseline,3.208596615125577,43,0.0025215026676276985,Cohen's dz,0.48371413981708694,
-4,tau_change_from_baseline,low_impact_delta_t24,0.5659288575316306,-0.32583835901340186,1.457696074076663,44.0,paired t-test vs own pre-injury baseline,1.2798231322336575,43,0.2074694434525958,Cohen's dz,0.19294059671074754,
-4,tau_change_from_baseline,high_impact_delta_t0.5,-2.7191041297665706,-3.5876565885320724,-1.8505516710010688,40.0,paired t-test vs own pre-injury baseline,-6.332268337286703,39,1.79036063323683e-07,Cohen's dz,-1.001219535059665,
-4,tau_change_from_baseline,high_impact_delta_t1,-2.180813262797923,-3.153941636792415,-1.2076848888034315,42.0,paired t-test vs own pre-injury baseline,-4.525858921391671,41,5.0787691950568383e-05,Cohen's dz,-0.6983551930265549,
-4,tau_change_from_baseline,high_impact_delta_t5,-1.5023706722078203,-2.5332473273667087,-0.4714940170489319,43.0,paired t-test vs own pre-injury baseline,-2.9410955707075765,42,0.005301093741033661,Cohen's dz,-0.4485128697444615,
-4,tau_change_from_baseline,high_impact_delta_t24,-1.5985790307537193,-2.4420193148900333,-0.7551387466174052,42.0,paired t-test vs own pre-injury baseline,-3.827651948592293,41,0.00043427081487029255,Cohen's dz,-0.5906195181567196,
-4,tau_change_from_baseline,low_vs_high_delta_t0.5,6.461068732469279,,,83.0,"Welch t-test, low vs high impact delta-tau at 0.5 h",9.996071599524559,,9.239157375232404e-16,Cohen's d,2.1897856257941877,the two doses move tau in opposite directions; this is why dose must be a predictor
-4,converter_contrast,low_impact_tau_t-1,2.341561170785951,,,45.0,Welch t-test (converter - non-converter),3.072599917264425,,0.005710928717579255,Cohen's d,1.009135206436029,"converters n = 17, non-converters n = 28"
-4,converter_contrast,low_impact_tau_t0.5,4.111386290073385,,,43.0,Welch t-test (converter - non-converter),3.4627408746838397,,0.001943671520142627,Cohen's d,1.1245584131065158,"converters n = 17, non-converters n = 26"
-4,converter_contrast,low_impact_tau_t24,3.803327816651146,,,44.0,Welch t-test (converter - non-converter),4.214485063162867,,0.0003569024181548141,Cohen's d,1.3833433208140913,"converters n = 17, non-converters n = 27"
-4,converter_contrast,low_impact_dtau_0.5,1.7204851741875986,,,43.0,Welch t-test on delta-tau at 0.5 h,1.7208665244504384,,0.09555405612497014,Cohen's d,0.5463834142969117,
-4,converter_contrast,high_impact_tau_t-1,0.7390684335675459,,,43.0,Welch t-test (converter - non-converter),1.3379358078675463,,0.18842253628269431,Cohen's d,0.40892800421092906,"converters n = 20, non-converters n = 23"
-4,converter_contrast,high_impact_tau_t0.5,2.178865644361012,,,40.0,Welch t-test (converter - non-converter),3.8666052106004165,,0.0004380234109792775,Cohen's d,1.222727927817235,"converters n = 20, non-converters n = 20"
-4,converter_contrast,high_impact_tau_t24,3.1728265597230356,,,42.0,Welch t-test (converter - non-converter),4.822633006872102,,3.8044212903753184e-05,Cohen's d,1.5227201535255595,"converters n = 19, non-converters n = 23"
-4,converter_contrast,high_impact_dtau_0.5,1.3513077041188057,,,40.0,Welch t-test on delta-tau at 0.5 h,1.6049413508586268,,0.11737198258260827,Cohen's d,0.5075270179700696,
-4,operations,n_sessions,15,,,15.0,,,,,,,
-4,operations,total_fish_sessions_recorded,650,,,15.0,,,,,,,
-4,operations,fish_per_hour_mean,33.31281662261865,,,15.0,,,,,,,
-4,operations,fish_per_hour_sd,2.390206767215313,,,15.0,,,,,,,
-4,operations,operator_min_per_fish_mean,0.8979353688684376,,,15.0,,,,,,,
-4,operations,operator_min_per_fish_sd,0.14115871226957435,,,15.0,,,,,,,
-4,operations,cost_per_fish_usd_mean,0.09352309481657187,,,15.0,,,,,,,"consumables_cost_usd is treated as a per-session total (it scales with n_fish_recorded, r = 0.999)"
-4,operations,cost_per_fish_usd_sd,0.0015942959263007285,,,15.0,,,,,,,"consumables_cost_usd is treated as a per-session total (it scales with n_fish_recorded, r = 0.999)"
-4,operations,total_consumables_usd,60.75999999999999,,,15.0,,,,,,,
-4,operations,total_operator_hours,9.736666666666666,,,15.0,,,,,,,
-4,operations,fish_lost_total,9,,,15.0,,,,,,,
-4,operations,fish_at_baseline,133,,,15.0,,,,,,,
-4,operations,attrition_rate,0.06766917293233082,,,15.0,,,,,,,
-4,operations,attrition_rate_ci,0.06766917293233082,0.03600638717710822,0.12360502744039734,133.0,Wilson 95% CI for a proportion,,,,,,
-4,ptz,prop_seized_sham,0.25,0.08894166839405476,0.5323053349335658,12.0,Wilson 95% CI,,,,,,3/12 seized
-4,ptz,prop_seized_low_impact,0.5833333333333334,0.31951131254954973,0.8067396863412435,12.0,Wilson 95% CI,,,,,,7/12 seized
-4,ptz,prop_seized_high_impact,0.7,0.39677814746114537,0.8922087325936989,10.0,Wilson 95% CI,,,,,,7/10 seized
-4,ptz,chi_square,4.933333333333333,,,34.0,"Pearson chi-square, 3 groups x seized/not",4.933333333333333,2,0.08486727897001749,Cramer's V,0.38091736533753123,SECONDARY and UNDERPOWERED -- see power estimate below
-4,ptz,min_expected_cell_count,5.0,,,34.0,,,,,,,chi-square is unreliable below 5; Fisher reported alongside
-4,ptz,fisher_exact_low_vs_high,,,,22.0,"Fisher exact, low vs high impact",,,0.6749226006191951,,,
-4,ptz,post_hoc_power_sham_vs_injured,0.6059456029123034,,,34.0,,,,,Cohen's h,0.7998254063618901,"two-proportion z, alpha = 0.05, two-sided; reported to make the underpowering explicit, not to reinterpret the p-value"
+2,permutation_selected,observed_pooled_auc,0.7463235294117647,,,82.0,,,,,,,
+2,permutation_selected,null_mean_auc,0.4865683210784314,,,1000.0,,,,,,,
+2,permutation_selected,null_95th_percentile,0.6127450980392156,,,1000.0,,,,,,,
+2,permutation_selected,p_value_pooled_auc,0.000999000999000999,,,82.0,"permutation test on the full selection procedure, 1000 shuffles",0.7463235294117647,,0.000999000999000999,,,feature-set selection is re-run inside every permutation
+2,full_model,selected_C_full_data,100.0,,,82.0,,,,,,,chosen by clutch-held-out CV on the full set; the reported AUC does NOT use this
+2,full_model,coef_dose,0.9362580797702209,0.405165018717278,1.8514995405816932,82.0,ridge logistic (clutch-clustered bootstrap CI),,,,odds ratio per SD,2.550420072126026,"OR 95% CI [1.500, 6.369]; excludes zero"
+2,full_model,coef_pre_tau,1.3002538791441016,0.7077113678328033,2.594409601665428,82.0,ridge logistic (clutch-clustered bootstrap CI),,,,odds ratio per SD,3.670228343778243,"OR 95% CI [2.029, 13.389]; excludes zero"
+2,full_model,coef_dtau_0.5,0.09993009894982939,-0.4837842608180758,0.6367914892133945,82.0,ridge logistic (clutch-clustered bootstrap CI),,,,odds ratio per SD,1.1050936681678125,"OR 95% CI [0.616, 1.890]; includes zero"
+2,full_model,coef_dtau_24,0.733474187242532,0.021423867044758176,1.8500067094683244,82.0,ridge logistic (clutch-clustered bootstrap CI),,,,odds ratio per SD,2.0823023638512517,"OR 95% CI [1.022, 6.360]; excludes zero"
+2,confusion_matrix,accuracy,0.7073170731707317,,,82.0,,,,,,,"out-of-fold predictions, threshold 0.50"
+2,confusion_matrix,balanced_accuracy,0.6899509803921569,,,82.0,,,,,,,"out-of-fold predictions, threshold 0.50"
+2,confusion_matrix,sensitivity,0.5882352941176471,,,82.0,,,,,,,"out-of-fold predictions, threshold 0.50"
+2,confusion_matrix,specificity,0.7916666666666666,,,82.0,,,,,,,"out-of-fold predictions, threshold 0.50"
+2,confusion_matrix,ppv,0.6666666666666666,,,82.0,,,,,,,"out-of-fold predictions, threshold 0.50"
+2,confusion_matrix,npv,0.7307692307692307,,,82.0,,,,,,,"out-of-fold predictions, threshold 0.50"
+2,confusion_matrix,tn_fp_fn_tp,38;10;14;20,,,82.0,,,,,,,
+2,calibration,brier_score,0.19839807497768286,,,82.0,,,,,,,out-of-fold; 0.25 = uninformative at 50% prevalence
+2,confusion_matrix_youden,threshold,0.35700426827316606,,,82.0,,,,,,,"Youden-optimal operating point, selected on the out-of-fold predictions; mildly optimistic, reported as an operating-point illustration only"
+2,confusion_matrix_youden,accuracy,0.6951219512195121,,,82.0,,,,,,,threshold 0.357 (Youden)
+2,confusion_matrix_youden,balanced_accuracy,0.7138480392156863,,,82.0,,,,,,,threshold 0.357 (Youden)
+2,confusion_matrix_youden,sensitivity,0.8235294117647058,,,82.0,,,,,,,threshold 0.357 (Youden)
+2,confusion_matrix_youden,specificity,0.6041666666666666,,,82.0,,,,,,,threshold 0.357 (Youden)
+2,confusion_matrix_youden,ppv,0.5957446808510638,,,82.0,,,,,,,threshold 0.357 (Youden)
+2,confusion_matrix_youden,npv,0.8285714285714286,,,82.0,,,,,,,threshold 0.357 (Youden)
+2,confusion_matrix_youden,tn_fp_fn_tp,29;19;6;28,,,82.0,,,,,,,
+2,sensitivity,global_z_mean_fold_auc,0.723468137254902,,,82.0,,,,,,,within-dose z fitted on the WHOLE dataset (mildly leaky); reported to show the fold-safe scaler costs nothing
+3,design,n_pools,27,,,,,,,,,,labelled by realised outcome (converter / non_converter)
+3,design,n_paired_cells,6,,,,,,,,,,group x clutch cells containing both pool types; replicate pools averaged
+3,design,n_sham_converter_pools,0,,,,,,,,,,"sham conversion is too rare to form a pool, so sham cannot be paired"
+3,cfos_all_pairs,n_pairs,6,,,6.0,,,,,,,All 6 injured pairs
+3,cfos_all_pairs,mean_fold_change_difference,0.9549166666666666,0.29623720085821525,1.613596132475118,6.0,paired t-test (one-sample on differences),3.72668583932075,5,0.013617577344059271,Cohen's dz,1.5214131229985826,All 6 injured pairs
+3,cfos_all_pairs,wilcoxon_fold_change,0.9549166666666666,,,6.0,Wilcoxon signed-rank (robustness check),0.0,,0.03125,,,All 6 injured pairs
+3,cfos_all_pairs,shapiro_fold_change_differences,0.9478184015411497,,,6.0,Shapiro-Wilk on within-pair differences,0.9478184015411497,,0.7225846777042532,,,normality assumption for the paired t-test
+3,cfos_all_pairs_log2,n_pairs,6,,,6.0,,,,,,,"All 6 injured pairs, log2 scale"
+3,cfos_all_pairs_log2,mean_log2_fold_change_difference,0.7950598296931589,0.3070159649800965,1.2831036944062213,6.0,paired t-test (one-sample on differences),4.187669396591915,5,0.008591093616390266,Cohen's dz,1.7096088721864862,"All 6 injured pairs, log2 scale"
+3,cfos_all_pairs_log2,wilcoxon_log2_fold_change,0.7950598296931589,,,6.0,Wilcoxon signed-rank (robustness check),0.0,,0.03125,,,"All 6 injured pairs, log2 scale"
+3,cfos_all_pairs_log2,shapiro_log2_fold_change_differences,0.9354980796779493,,,6.0,Shapiro-Wilk on within-pair differences,0.9354980796779493,,0.6231771130068904,,,normality assumption for the paired t-test
+3,cfos_low_impact,mean_fold_change_difference,0.9653333333333333,,,3.0,,,,,,,"low_impact: descriptive only, 3 pairs is too few to test"
+3,cfos_high_impact,mean_fold_change_difference,0.9445,,,3.0,,,,,,,"high_impact: descriptive only, 3 pairs is too few to test"
+3,cfos_noncoverter_baseline,injured_minus_sham_noncoverters,0.0744166666666668,-0.24187088091062514,0.39070421424395874,9.0,"Welch t-test, non-converter pools only (injured vs sham)",0.55635277477908,,0.607204997924625,Cohen's d,0.39390379977324874,a NULL result here is the desired outcome: it shows c-fos tracks conversion rather than injury exposure
+3,cfos_all_pairs,n_pairs_converter_gt_nonconverter,6,,,6.0,exact binomial sign test,,,0.03125,,,direction consistency across paired cells
+3,design,pooled_risk_regression_run,no,,,,,,,,,,deliberately omitted: pools are outcome-labelled and the risk score is not comparable between dose groups
+3,design,shares_animals_with_model_cohort,yes,,,,,,,,,,"single zf_* cohort; this validates the OUTCOME LABEL, not the model's predictions on unseen animals"
+4,baseline_equivalence,levene_tau,2.3133887938905997,,,129.0,Levene (median-centred) on baseline tau,2.3133887938905997,,0.10311334981927053,,,
+4,baseline_equivalence,shapiro_tau_sham,0.9553986187377345,,,44.0,Shapiro-Wilk,0.9553986187377345,,0.08752396342393805,,,
+4,baseline_equivalence,shapiro_tau_low_impact,0.923337534637156,,,44.0,Shapiro-Wilk,0.923337534637156,,0.0061648724423242094,,,
+4,baseline_equivalence,shapiro_tau_high_impact,0.9427122703437454,,,41.0,Shapiro-Wilk,0.9427122703437454,,0.038975232726390356,,,
+4,baseline_equivalence,anova_tau,2.0585980987077113,,,129.0,one-way ANOVA on baseline tau,2.0585980987077113,"2,126",0.13190415273672731,eta squared,0.03164221423253512,a NON-significant result is the desired outcome here
+4,baseline_equivalence,kruskal_tau,3.748953825527849,,,129.0,Kruskal-Wallis (robustness),3.748953825527849,2,0.15343520585484524,,,
+4,baseline_equivalence,anova_baseline_locomotion,2.4950553922192023,,,129.0,one-way ANOVA on pre-injury baseline_locomotion,2.4950553922192023,"2,126",0.08656019925856112,,,
+4,tau_dynamics,sham_t-1_mean,6.740266214378057,6.175806429940727,7.304725998815386,44.0,,,,,,,SD = 1.910
+4,tau_dynamics,sham_t0.5_mean,6.739464136911327,5.820441446805014,7.658486827017639,44.0,,,,,,,SD = 3.110
+4,tau_dynamics,sham_t24_mean,6.481473706834006,5.669670626506477,7.293276787161535,44.0,,,,,,,SD = 2.747
+4,tau_dynamics,low_impact_t-1_mean,6.444571113046939,5.843491998310151,7.045650227783726,44.0,,,,,,,SD = 2.034
+4,tau_dynamics,low_impact_t0.5_mean,9.799593184855654,8.892612792506117,10.70657357720519,43.0,,,,,,,SD = 3.034
+4,tau_dynamics,low_impact_t24_mean,7.361156039415345,6.448183201408998,8.274128877421692,44.0,,,,,,,SD = 3.090
+4,tau_dynamics,high_impact_t-1_mean,5.940255525674568,5.486086636230128,6.394424415119008,41.0,,,,,,,SD = 1.484
+4,tau_dynamics,high_impact_t0.5_mean,3.961289928412946,3.30757169168489,4.615008165141002,43.0,,,,,,,SD = 2.187
+4,tau_dynamics,high_impact_t24_mean,5.285113628794836,4.351352799267569,6.2188744583221025,43.0,,,,,,,SD = 3.124
+4,tau_change_from_baseline,sham_delta_t0.5,-0.0008020774667308277,-0.9687615222723883,0.9671573673389268,44.0,paired t-test vs own pre-injury baseline,-0.0016710858900263511,43,0.9986743957542525,Cohen's dz,-0.000251925676803387,
+4,tau_change_from_baseline,sham_delta_t24,-0.25879250754405175,-1.1835982656122475,0.6660132505241438,44.0,paired t-test vs own pre-injury baseline,-0.5643399455826176,43,0.5754548854150342,Cohen's dz,-0.0850774478957785,
+4,tau_change_from_baseline,low_impact_delta_t0.5,3.2920924027072695,2.316818667585061,4.267366137829478,43.0,paired t-test vs own pre-injury baseline,6.812150479022844,42,2.69981003826943e-08,Cohen's dz,1.0388432089415516,
+4,tau_change_from_baseline,low_impact_delta_t24,0.9165849263684056,0.06088354391752926,1.772286308819282,44.0,paired t-test vs own pre-injury baseline,2.1601807696542887,43,0.036376657117988404,Cohen's dz,0.32565950419474643,
+4,tau_change_from_baseline,high_impact_delta_t0.5,-1.9376716076155553,-2.5870208154594048,-1.2883223997717057,40.0,paired t-test vs own pre-injury baseline,-6.035751979664388,39,4.6192393120322953e-07,Cohen's dz,-0.9543361823804881,
+4,tau_change_from_baseline,high_impact_delta_t24,-0.5848765888583778,-1.4776131592032558,0.3078599814865003,40.0,paired t-test vs own pre-injury baseline,-1.3251664655889401,39,0.1928275369886994,Cohen's dz,-0.20952721550680975,
+4,tau_change_from_baseline,low_vs_high_delta_t0.5,5.229764010322825,,,83.0,"Welch t-test, low vs high impact delta-tau at 0.5 h",9.014028753195488,,1.939167408283644e-13,Cohen's d,1.9651172902392202,the two doses move tau in opposite directions; this is why dose must be a predictor
+4,converter_contrast,low_impact_tau_t-1,2.0721207251499667,,,44.0,Welch t-test (converter - non-converter),3.2382508863673287,,0.0041601234716108215,Cohen's d,1.102797397272729,"converters n = 13, non-converters n = 31"
+4,converter_contrast,low_impact_tau_t0.5,1.317733569393262,,,43.0,Welch t-test (converter - non-converter),1.3639950459890744,,0.18485736221464813,Cohen's d,0.4454845519125768,"converters n = 13, non-converters n = 30"
+4,converter_contrast,low_impact_tau_t24,2.6516330758488484,,,44.0,Welch t-test (converter - non-converter),2.879683559306885,,0.008213893946287592,Cohen's d,0.9376234508255614,"converters n = 13, non-converters n = 31"
+4,converter_contrast,low_impact_dtau_0.5,-0.6845952129438384,,,43.0,Welch t-test on delta-tau at 0.5 h,-0.7236626522347205,,0.4748443959098705,Cohen's d,-0.22662052537445934,
+4,converter_contrast,high_impact_tau_t-1,0.9474263633708855,,,41.0,Welch t-test (converter - non-converter),2.163238662460535,,0.036752201351552265,Cohen's d,0.6718558946364847,"converters n = 22, non-converters n = 19"
+4,converter_contrast,high_impact_tau_t0.5,1.390308777060563,,,43.0,Welch t-test (converter - non-converter),2.2280000840124075,,0.031433405177247464,Cohen's d,0.6734847962988616,"converters n = 24, non-converters n = 19"
+4,converter_contrast,high_impact_tau_t24,2.398399295898412,,,43.0,Welch t-test (converter - non-converter),2.8030108095900017,,0.008289306895385398,Cohen's d,0.8397875299890059,"converters n = 23, non-converters n = 20"
+4,converter_contrast,high_impact_dtau_0.5,0.299883366495064,,,40.0,Welch t-test on delta-tau at 0.5 h,0.4852163876050596,,0.6306290009472623,Cohen's d,0.15014688876323454,
+4,operations,n_sessions,12,,,12.0,,,,,,,
+4,operations,n_habituation_sessions,9,,,12.0,,,,,,,
+4,operations,n_outcome_sessions,3,,,12.0,,,,,,,
+4,operations,total_fish_sessions_recorded,522,,,12.0,,,,,,,
+4,operations,fish_per_hour_mean,29.084005385289206,,,12.0,,,,,,,
+4,operations,fish_per_hour_sd,6.240990278648109,,,12.0,,,,,,,
+4,operations,fish_per_hour_habituation,32.44415206212497,,,12.0,,,,,,,
+4,operations,operator_min_per_fish_mean,0.986131917178429,,,12.0,,,,,,,
+4,operations,operator_min_per_fish_sd,0.21310566542722012,,,12.0,,,,,,,
+4,operations,cost_per_fish_usd_mean,0.09331951295904783,,,12.0,,,,,,,consumables_cost_usd treated as a per-session total (it scales with n_fish_recorded)
+4,operations,cost_per_fish_usd_sd,0.0011631406581947227,,,12.0,,,,,,,consumables_cost_usd treated as a per-session total (it scales with n_fish_recorded)
+4,operations,total_consumables_usd,48.699999999999996,,,12.0,,,,,,,
+4,operations,total_operator_hours,8.584999999999999,,,12.0,,,,,,,
+4,operations,fish_lost_total,4,,,12.0,,,,,,,
+4,operations,fish_at_baseline,129,,,12.0,,,,,,,
+4,operations,attrition_rate,0.031007751937984496,,,12.0,,,,,,,
+4,operations,habituation_operator_min_per_fish,0.8869657259192143,,,9.0,,,,,,,habituation sessions only
+4,operations,outcome_operator_min_per_fish,1.2836304909560725,,,3.0,,,,,,,outcome sessions only
+4,operations,attrition_rate_ci,0.031007751937984496,0.012123038313399205,0.07701674474692846,129.0,Wilson 95% CI for a proportion,,,,,,
+4,ptz_confound,conversion_challenged_vs_not_sham,0.02178649237472767,,,44.0,"Fisher exact, converted by ptz_challenged",,,1.0,,,"challenged 1/17, not challenged 1/27"
+4,ptz_confound,conversion_challenged_vs_not_low_impact,0.05747126436781608,,,44.0,"Fisher exact, converted by ptz_challenged",,,0.7366783549251712,,,"challenged 5/15, not challenged 8/29"
+4,ptz_confound,conversion_challenged_vs_not_high_impact,0.0,,,44.0,"Fisher exact, converted by ptz_challenged",,,1.0,,,"challenged 12/22, not challenged 12/22"
+4,ptz,prop_seized_sham,0.29411764705882354,0.1327998961029523,0.5313311006653985,17.0,Wilson 95% CI,,,,,,5/17 seized
+4,ptz,prop_seized_low_impact,0.7333333333333333,0.48049565944019423,0.8910254667430763,15.0,Wilson 95% CI,,,,,,11/15 seized
+4,ptz,prop_seized_high_impact,0.8636363636363636,0.6666501283342827,0.9525099628594476,22.0,Wilson 95% CI,,,,,,19/22 seized
+4,ptz,chi_square,14.30006674440111,,,54.0,"Pearson chi-square, 3 groups x seized/not",14.30006674440111,2,0.0007848378891064497,Cramer's V,0.5146028087974674,SECONDARY and UNDERPOWERED -- see power estimate below
+4,ptz,min_expected_cell_count,5.277777777777778,,,54.0,,,,,,,chi-square is unreliable below 5; Fisher reported alongside
+4,ptz,fisher_exact_low_vs_high,,,,37.0,"Fisher exact, low vs high impact",,,0.40814806742226095,,,
+4,ptz,post_hoc_power_sham_vs_injured,0.9622889731925404,,,54.0,,,,,Cohen's h,1.0952009122161375,"two-proportion z, alpha = 0.05, two-sided; reported to make the underpowering explicit, not to reinterpret the p-value"
+4,ptz,power_verdict,adequately powered for sham vs injured,,,54.0,,,,,,,secondary outcome regardless of power
+4,ptz,low_vs_high_powered,no,,,37.0,,,,,,,dose-discrimination within injured groups is not powered at this n
+4,ptz_vs_conversion,odds_ratio_seized_given_converted,17.0,,,54.0,"Fisher exact, seized x converted within the PTZ subset",,,0.0018775271144710155,odds ratio,17.0,"both measured on the same larvae; exploratory, not pre-specified"
+4,ptz_vs_conversion,latency_converter_minus_nonconverter,-1370.05,,,54.0,Mann-Whitney U on PTZ latency by conversion status,144.0,,0.0007579852622522729,,,"median converter 405 s, non-converter 1775 s"

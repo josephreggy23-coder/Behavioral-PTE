@@ -19,7 +19,7 @@ def _fmt_p(p) -> str:
 
 
 def _p(p) -> str:
-    """Same as _fmt_p but with the leading 'p', for use in running prose."""
+    """Same as _fmt_p but with a leading 'p', for running prose."""
     return "p " + _fmt_p(p)
 
 
@@ -34,23 +34,21 @@ def _g(analysis: str, quantity: str, default=None):
         return default
 
 
+def _v(analysis: str, quantity: str, default=np.nan) -> float:
+    r = _g(analysis, quantity)
+    return float(r["value"]) if r is not None else default
+
+
 def write(ctx: dict) -> str:
-    step1 = ctx["step1"]
-    s2 = ctx["step2"]
-    s3 = ctx["step3"]
-    s4 = ctx["step4"]
+    s2, s3, s4 = ctx["step2"], ctx["step3"], ctx["step4"]
+    comp, folds = s2["comparison"], s2["folds"]
+    full, perm, coefs, cm = s2["full"], s2["perm"], s2["coefs"], s2["cm"]
+    sel, sel_cm, sel_perm = s2["selection"], s2["selection_cm"], s2["selection_perm"]
+    sel_lo, sel_hi = s2["selection_ci"]
 
-    comp = s2["comparison"]
-    folds = s2["folds"]
-    full = s2["full"]
-    perm = s2["perm"]
-    coefs = s2["coefs"]
-    cm = s2["cm"]
-
-    n_fish = int(_g("design_matrix", "n_fish")["value"])
-    n_events = int(_g("design_matrix", "n_events")["value"])
-    epv = float(_g("design_matrix", "events_per_variable")["value"])
-
+    n_fish = int(_v("design_matrix", "n_fish"))
+    n_events = int(_v("design_matrix", "n_events"))
+    epv = _v("design_matrix", "events_per_variable")
     r_agree = _g("tau_agreement", "pearson_r")
     bias = _g("tau_agreement", "mean_bias_trials")
     anova = _g("baseline_equivalence", "anova_tau")
@@ -58,214 +56,258 @@ def write(ctx: dict) -> str:
     L: list[str] = []
     A = L.append
 
-    A("# Results — larval zebrafish blast TBI and post-traumatic epileptogenesis")
+    A("# Results: larval zebrafish blast TBI and post-traumatic epileptogenesis")
     A("")
     A(f"Generated {datetime.now():%Y-%m-%d %H:%M} from `{config.DATA_XLSX.name}`  ")
     A(f"**Random seed: `{config.SEED}`** (numpy, scikit-learn, permutation and bootstrap draws). "
       "Rerunning `python run_all.py` reproduces every number below.")
     A("")
-    A("Every statistic quoted here is also in [`results/all_statistics.csv`](results/all_statistics.csv) "
-      "with its test, statistic, df, p-value, effect size and CI.")
+    A("Every statistic quoted here is also in [`results/all_statistics.csv`](results/all_statistics.csv), "
+      "with its test, statistic, degrees of freedom, p-value, effect size and confidence interval.")
     A("")
     A("---")
     A("")
 
-    # ---------------------------------------------------------------- summary
+    # ------------------------------------------------------------- summary
     A("## Summary of findings")
     A("")
     A("| # | Finding | Test | Effect size | p |")
     A("|---|---------|------|-------------|---|")
     A(f"| 1 | The nonlinear refit reproduces the supplied `decay_constant` | Pearson correlation, "
-      f"{int(r_agree['n'])} sessions | r = {float(r_agree['value']):.4f} | {_fmt_p(r_agree['p_value'])} |")
+      f"{int(r_agree['n'])} sessions | r = {float(r_agree['value']):.4f} | "
+      f"{_fmt_p(r_agree['p_value'])} |")
     A(f"| 2 | Groups are indistinguishable at the pre-injury baseline | one-way ANOVA on baseline τ | "
       f"η² = {float(anova['effect_size']):.4f} | {_fmt_p(anova['p_value'])} |")
     A(f"| 3 | Low and high dose move τ in **opposite** directions after blast | Welch t, Δτ at 0.5 h | "
       f"d = {float(_g('tau_change_from_baseline','low_vs_high_delta_t0.5')['effect_size']):.2f} | "
       f"{_fmt_p(_g('tau_change_from_baseline','low_vs_high_delta_t0.5')['p_value'])} |")
-    A(f"| 4 | The 4-predictor model predicts conversion above chance | nested CV + "
-      f"{perm['n_perm']} permutations | AUC = {full['pooled_auc']:.3f} | "
-      f"{_fmt_p(perm['p_pooled'])} |")
-    A(f"| 5 | c-fos is higher in high-risk than low-risk pools | paired t, "
-      f"{s3['all']['n']} matched pairs | dz = {s3['all']['dz']:.2f} | {_fmt_p(s3['all']['p'])} |")
-    A(f"| 6 | Sham pools show no high-vs-low difference (negative control) | paired t, "
-      f"{s3['sham']['n']} pairs | dz = {s3['sham']['dz']:.2f} | {_fmt_p(s3['sham']['p'])} |")
-    A(f"| 7 | PTZ seizure proportion differs by group — **underpowered** | χ² | "
+    A(f"| 4 | Conversion is predictable from pre-injury τ and dose | nested CV with model selection, "
+      f"{perm['n_perm']} permutations | AUC = {sel['mean_fold_auc']:.3f} | "
+      f"{_fmt_p(sel_perm['p_pooled'])} |")
+    A(f"| 5 | The acute Δτ terms do **not** add predictive value here | ablation, same CV | "
+      f"ΔAUC = {comp.loc[comp.key=='e_full','mean_fold_auc'].iloc[0] - comp.loc[comp.key=='c_dose_pretau','mean_fold_auc'].iloc[0]:+.3f} | n/a |")
+    A(f"| 6 | Converter pools carry more c-fos than matched non-converter pools | paired t, "
+      f"{s3['all']['n']} matched cells | dz = {s3['all']['dz']:.2f} | {_fmt_p(s3['all']['p'])} |")
+    A(f"| 7 | c-fos does not rise with injury alone (specificity control) | Welch t, non-converter "
+      f"pools | d = {s3['baseline']['d']:.2f} | {_fmt_p(s3['baseline']['p'])} |")
+    A(f"| 8 | Injured larvae seize more readily under PTZ | χ², n = {int(_g('ptz','chi_square')['n'])} | "
       f"V = {float(_g('ptz','chi_square')['effect_size']):.3f} | "
       f"{_fmt_p(_g('ptz','chi_square')['p_value'])} |")
+    or_row = _g("ptz_vs_conversion", "odds_ratio_seized_given_converted")
+    if or_row is not None:
+        A(f"| 9 | PTZ seizure and conversion coincide in the same larvae | Fisher exact | "
+          f"OR = {float(or_row['value']):.1f} | {_fmt_p(or_row['p_value'])} |")
+    A("")
+    A("> **Headline.** Conversion is predictable, but **not from the variable this study was "
+      "designed around.** The pre-injury habituation constant plus blast dose carries the signal; "
+      "the acute change in habituation does not add to it in this dataset. Section 2.2 sets out "
+      "what that does and does not license.")
     A("")
     A("---")
     A("")
 
-    # ---------------------------------------------------------------- step 1
-    A("## Step 1 — Rebuilding the outcome variable")
+    # -------------------------------------------------------------- step 1
+    A("## Step 1. Rebuilding the outcome variable")
     A("")
-    A("Per fish per session, `distance_mm(k) = A·exp(−(k−1)/τ) + C` was fitted to all 30 trials by "
+    A("Per fish per session, `distance_mm(k) = A·exp(-(k-1)/τ) + C` was fitted to all 30 trials by "
       "nonlinear least squares (`scipy.optimize.curve_fit`, bounded, four starting points per "
-      "session, best SSE retained).")
+      "session, best sum of squared errors retained).")
     A("")
-    n_sess = int(_g("curve_fit", "n_sessions")["value"])
-    conv = float(_g("curve_fit", "convergence_rate")["value"])
-    r2med = float(_g("curve_fit", "r2_median")["value"])
+    n_sess = int(_v("curve_fit", "n_sessions"))
+    conv = _v("curve_fit", "convergence_rate")
+    r2med = _v("curve_fit", "r2_median")
     A(f"- **{n_sess} fish-sessions fitted**, convergence {100*conv:.1f}%, median R² = {r2med:.3f} "
-      f"(5th percentile {float(_g('curve_fit','r2_q05')['value']):.3f}); "
-      f"{_plural(int(_g('curve_fit','n_tau_at_bound')['value']), 'session')} hit a parameter bound.")
+      f"(5th percentile {_v('curve_fit','r2_q05'):.3f}); "
+      f"{_plural(int(_v('curve_fit','n_tau_at_bound')), 'session')} hit a parameter bound.")
     A(f"- **Agreement with the supplied `fish_features.decay_constant`:** "
       f"Pearson r = {float(r_agree['value']):.4f} ({_p(r_agree['p_value'])}), "
-      f"Spearman ρ = {float(_g('tau_agreement','spearman_rho')['value']):.4f}. "
-      f"Mean bias (refit − supplied) = {float(bias['value']):+.3f} trials, 95% CI "
+      f"Spearman ρ = {_v('tau_agreement','spearman_rho'):.4f}. "
+      f"Mean bias (refit minus supplied) = {float(bias['value']):+.3f} trials, 95% CI "
       f"[{float(bias['ci_low']):+.3f}, {float(bias['ci_high']):+.3f}]; "
-      f"95% limits of agreement [{float(_g('tau_agreement','limits_of_agreement_low')['value']):+.3f}, "
-      f"{float(_g('tau_agreement','limits_of_agreement_high')['value']):+.3f}]; "
-      f"median absolute error {float(_g('tau_agreement','median_abs_pct_error')['value']):.2f}%.")
-    A("  The refit is used for everything downstream; the supplied column is treated as a check, not an input.")
+      f"95% limits of agreement [{_v('tau_agreement','limits_of_agreement_low'):+.3f}, "
+      f"{_v('tau_agreement','limits_of_agreement_high'):+.3f}].")
+    A("  The refit is what every downstream analysis uses; the supplied column is a check, not an input.")
     A("")
     A("### Why log-linearisation was not used")
     A("")
-    pct_below = float(_g("loglinear_failure", "pct_trials_below_offset")["value"])
-    n_neg = int(_g("loglinear_failure", "n_sessions_negative_tau")["value"])
-    r_ll = float(_g("loglinear_failure", "pearson_r_vs_supplied")["value"])
-    A(f"Subtracting an estimated offset and regressing `log(y − C)` on trial fails on this data for a "
-      f"mechanical reason: **{pct_below:.1f}% of trials fall at or below the habituated floor**, so "
-      f"`y − C` is non-positive and cannot be logged. Discarding those points tilts the fitted slope, "
-      f"and in **{n_neg} of {n_sess} sessions the recovered τ comes back negative** — the sign inverts. "
-      f"Correlation with the supplied τ collapses from r = {float(r_agree['value']):.3f} (nonlinear) to "
-      f"r = {r_ll:.3f} (log-linear). See `fig02_tau_agreement.png`, right panel.")
+    pct_below = _v("loglinear_failure", "pct_trials_below_offset")
+    n_neg = int(_v("loglinear_failure", "n_sessions_negative_tau"))
+    r_ll = _v("loglinear_failure", "pearson_r_vs_supplied")
+    A(f"Subtracting an estimated offset and regressing `log(y - C)` on trial number requires y > C. "
+      f"Once responses reach the habituated floor they scatter below it: **{pct_below:.1f}% of trials "
+      f"are unusable**. Discarding them tilts the fitted slope so far that correlation with the "
+      f"reference τ collapses from r = {float(r_agree['value']):.3f} (nonlinear) to r = {r_ll:.3f} "
+      f"(log-linear), i.e. it inverts.")
+    if n_neg:
+        A(f"In {n_neg} of {n_sess} sessions the recovered τ is outright negative, scoring a "
+          "hyperexcitable fish as hypo-excitable.")
+    A("This diagnostic runs on every execution rather than being asserted.")
     A("")
     A("Figures: `fig01_curvefit_examples.png`, `fig02_tau_agreement.png`.")
     A("")
     A("---")
     A("")
 
-    # ---------------------------------------------------------------- step 2
-    A("## Step 2 — Prediction model (primary result)")
+    # -------------------------------------------------------------- step 2
+    A("## Step 2. Prediction model")
     A("")
-    A(f"**Analysis set.** Injured fish only (sham dropped), one row per fish, complete on all four "
+    A(f"**Analysis set.** Injured larvae only (sham dropped), one row per fish, complete on all four "
       f"predictors and the outcome: **n = {n_fish}, {n_events} converters "
       f"({100*n_events/n_fish:.1f}%)**. "
-      f"{int(_g('design_matrix','n_excluded_incomplete')['value'])} injured fish were excluded for a "
-      f"missing 0.5 h or 24 h session (attrition). Events per variable = **{epv:.1f}** with four "
-      f"predictors — at the accepted minimum, which is why the predictor set was not expanded.")
+      f"{int(_v('design_matrix','n_excluded_incomplete'))} injured larvae were excluded for a "
+      f"missing 0.5 h or 24 h session.")
     A("")
-    A("**Predictors.** `dose` (high_impact = 1); `pre_tau` (τ at t = −1); `z_dtau_0.5` and `z_dtau_24` "
-      "(τ@0.5 − τ@−1 and τ@24 − τ@−1, z-scored **within dose group**).")
+    if epv < 9:
+        A(f"> **Events per variable = {epv:.1f}, below the conventional floor of 9 to 10.** The "
+          "predictor set is held at four by design rather than trimmed to fit the rule, because each "
+          "term answers a distinct pre-specified question. The cost is wider intervals on every "
+          "coefficient, and they are reported rather than hidden. Section 2.3 shows the model that "
+          "the data actually support, which uses two predictors and comfortably clears the rule.")
+        A("")
+    A("**Predictors.** `dose` (high_impact = 1); `pre_tau` (τ at t = -1 h); `z_dtau_0.5` and "
+      "`z_dtau_24` (τ@0.5 - τ@-1 and τ@24 - τ@-1, z-scored **within dose group**).")
     A("")
-    A("**Model.** L2-penalised logistic regression inside a `StandardScaler` pipeline. No ensembles: "
-      f"at n = {n_fish} with {n_events} events, a random forest or boosted model has enough capacity to "
-      "memorise the sample, and its coefficients cannot be sign-checked against the biology.")
+    A("**Model.** L2-penalised logistic regression in a `StandardScaler` pipeline. No ensembles: at "
+      f"n = {n_fish} with {n_events} events, a random forest or boosted model has enough capacity to "
+      "memorise the sample, and its output cannot be sign-checked against the biology.")
     A("")
-    A("**Two fixes, applied together, for two different problems:**")
-    A("")
-    A("1. `GroupKFold` on clutch for the outer split (leave-one-clutch-out). Clutches were run on "
-      "separate days; a random split puts siblings on both sides of the partition.")
-    A("2. **Nested** CV for the penalty strength C — chosen inside each outer training set only, never "
-      "on the folds reported below.")
-    A("")
-    A("The within-dose z-scoring is itself a data-dependent transform, so it is implemented as a "
-      "pipeline step fitted on training folds only (`modeling.WithinDoseZScorer`) rather than applied "
-      "to the whole dataset up front. A sensitivity run with whole-dataset z-scoring is reported below.")
+    A("**Validation.** `GroupKFold` on clutch for the outer split (leave-one-clutch-out), never "
+      "random. The penalty strength C is tuned by **nested** cross-validation inside each outer "
+      "training set, never on the folds reported. Within-dose z-scoring is a pipeline step fitted on "
+      "training folds only, so no test-fold information reaches the scaling constants.")
     A("")
 
-    A("### Nested comparison table")
+    A("### 2.1 Ablation table")
     A("")
-    A("Same model class, same CV scheme, different inputs. This is the scientific argument.")
+    A("Same model class, same cross-validation, different inputs.")
     A("")
     A("| Model | Question | Mean fold AUC | SD | Fold range | Pooled OOF AUC [95% CI] | Brier |")
     A("|---|---|---|---|---|---|---|")
     for r in comp.itertuples():
         A(f"| {r.label} | {r.question} | **{r.mean_fold_auc:.3f}** | {r.sd_fold_auc:.3f} | "
-          f"{r.min_fold_auc:.3f}–{r.max_fold_auc:.3f} | {r.pooled_oof_auc:.3f} "
+          f"{r.min_fold_auc:.3f}-{r.max_fold_auc:.3f} | {r.pooled_oof_auc:.3f} "
           f"[{r.pooled_ci_low:.3f}, {r.pooled_ci_high:.3f}] | {r.brier:.3f} |")
     A("")
     A("Per-fold AUC (held-out clutch), with the C selected inside each fold:")
     A("")
     A("| Model | " + " | ".join(sorted(folds["held_out"].unique())) + " |")
     A("|---|" + "---|" * folds["held_out"].nunique())
-    for key, g in folds.groupby("key", sort=False):
+    for _, g in folds.groupby("key", sort=False):
         lab = g["label"].iloc[0]
         g = g.sort_values("held_out")
-        A(f"| {lab} | " + " | ".join(f"{r.auc:.3f} (C={r.selected_C:g})" for r in g.itertuples()) + " |")
+        A(f"| {lab} | " + " | ".join(f"{r.auc:.3f} (C={r.selected_C:g})"
+                                     for r in g.itertuples()) + " |")
     A("")
-    def _auc(k: str) -> float:
+
+    def _auc(k):
         return float(comp.loc[comp["key"] == k, "mean_fold_auc"].iloc[0])
 
-    a, b, c, d, e = (_auc(k) for k in
-                     ["a_locomotion_only", "b_dose_only", "c_dose_pretau",
-                      "d_dose_dtau", "e_full"])
-    best_partial = max(c, d)
-
+    a, b, c, d, e = (_auc(k) for k in ["a_locomotion_only", "b_dose_only", "c_dose_pretau",
+                                       "d_dose_dtau", "e_full"])
     A("Reading it:")
     A("")
-    A(f"- **(a) baseline_locomotion alone: {a:.3f}.** At or below chance out of fold. Conversion is "
-      "not a readout of how sick or sluggish the fish is.")
-    md = ctx["model_df"]
-    by_dose = md.groupby(["clutch", "dose"], observed=True)["converted"].mean().unstack()
-    spread = (by_dose[1] - by_dose[0])
-    worst_c, best_c = spread.idxmin(), spread.idxmax()
-    A(f"- **(b) dose alone: {b:.3f}.** Also at chance across clutches. The dose effect is not stable "
-      f"between them: in {best_c} high-dose fish convert at {100*by_dose.loc[best_c,1]:.0f}% versus "
-      f"{100*by_dose.loc[best_c,0]:.0f}% for low dose, but in {worst_c} the gap runs the other way "
-      f"({100*by_dose.loc[worst_c,1]:.0f}% vs {100*by_dose.loc[worst_c,0]:.0f}%). A model trained on "
-      "two clutches therefore does not transfer to the third. Injury severity by itself is not the "
-      "predictor — it is the moderator that keeps the two Δτ signals from cancelling.")
-    A(f"- **(c) dose + pre_tau: {c:.3f}.** A pre-existing trait carries real information — but note "
-      "the fold spread "
-      f"({comp.loc[comp.key=='c_dose_pretau','min_fold_auc'].iloc[0]:.3f}–"
-      f"{comp.loc[comp.key=='c_dose_pretau','max_fold_auc'].iloc[0]:.3f}) is the widest in the table.")
-    A(f"- **(d) dose + z_dtau: {d:.3f}.** The acute injury response carries a comparable amount, and "
-      "much more consistently across folds "
-      f"(SD {comp.loc[comp.key=='d_dose_dtau','sd_fold_auc'].iloc[0]:.3f}).")
-    piv = folds.pivot_table(index="held_out", columns="key", values="auc")
-    dominates = bool((piv["e_full"].values[:, None] > piv.drop(columns="e_full").values).all())
-    A(f"- **(e) the full model: {e:.3f}.** The jump of {e - best_partial:+.3f} AUC over the better of "
-      "(c) and (d) is the result. Neither the trait nor the response alone gets there; **they carry "
-      "complementary information**." +
-      (" The full model also beats every ablation in every one of the three clutch folds."
-       if dominates else
-       " Note that the full model does not beat every ablation in every fold — see the per-fold table."))
+    A(f"- **(a) baseline locomotion alone: {a:.3f}.** At or below chance out of fold. Conversion is "
+      "not a readout of how sick or sluggish the larva is.")
+    A(f"- **(b) dose alone: {b:.3f}.** Above chance. Blast dose is a genuine main effect in this "
+      "cohort, which was not true in the pilot data.")
+    A(f"- **(c) dose + pre_tau: {c:.3f}.** The strongest row in the table, and the most stable "
+      f"across folds (SD {comp.loc[comp.key=='c_dose_pretau','sd_fold_auc'].iloc[0]:.3f}).")
+    A(f"- **(d) dose + z_dtau: {d:.3f}.** Barely above dose alone. The acute injury response adds "
+      "little.")
+    A(f"- **(e) the pre-specified four-predictor model: {e:.3f}.** Adding the two Δτ terms to (c) "
+      f"**costs {e - c:+.3f} AUC**.")
     A("")
-    A("The honest reading of (c) versus (d) is that this design cannot cleanly apportion credit "
-      "between a pre-existing trait and the injury response — with 3 clutches and 36 events their "
-      f"individual AUCs ({c:.3f} vs {d:.3f}) are well inside each other's fold spread. What the table "
-      "does establish is that both are needed and that neither sickness nor dose substitutes for them.")
+    A("### 2.2 The result this study did not expect")
     A("")
-
-    A("### Permutation test")
+    A("The design was built on the hypothesis that the *acute change* in habituation kinetics carries "
+      "the predictive signal. In this dataset it does not. The two Δτ terms:")
     A("")
-    A(f"Labels were shuffled **within clutch** (preserving each clutch's conversion rate — the "
-      f"conservative null) and the *entire* nested CV rerun {perm['n_perm']} times.")
+    lo_c = _g("converter_contrast", "low_impact_dtau_0.5")
+    hi_c = _g("converter_contrast", "high_impact_dtau_0.5")
+    A(f"- do not separate converters from non-converters within either dose group "
+      f"(low impact {_p(lo_c['p_value'])}, high impact {_p(hi_c['p_value'])});")
+    A(f"- add nothing to dose on their own (model (d), {d:.3f}, versus dose alone, {b:.3f});")
+    A(f"- and actively degrade the model when added to `pre_tau` (model (e), {e:.3f}, versus "
+      f"model (c), {c:.3f}).")
     A("")
-    A(f"- Null distribution: mean AUC {perm['null_mean']:.3f}, SD {perm['null_sd']:.3f}, "
-      f"95th percentile {perm['null_q95']:.3f}.")
-    A(f"- Observed pooled out-of-fold AUC **{full['pooled_auc']:.3f}** sits at the "
-      f"**{perm['percentile_of_observed']:.1f}th percentile** of the null.")
-    A(f"- **{_p(perm['p_pooled'])}** (p = (1 + #{{null ≥ observed}}) / (n_perm + 1); the floor at "
-      f"{perm['n_perm']} permutations is {1/(perm['n_perm']+1):.4f}).")
-    A(f"- Using mean-fold AUC as the statistic instead: observed {full['mean_fold_auc']:.3f}, "
-      f"{_p(perm['p_mean_fold'])}.")
+    A("What does carry signal is `pre_tau`, the **pre-injury** habituation constant, together with "
+      "dose. That is a different scientific claim, and a weaker one for a biomarker: a variable "
+      "measured before the injury cannot be a readout of the injury response. It points to "
+      "**susceptibility** rather than to acute pathophysiology. Section 4.2 discusses what that means "
+      "mechanistically, and the limitations section says plainly why the original framing is not "
+      "supported here.")
     A("")
-    A("Figure: `fig04_permutation_null.png`.")
+    A("The group-level Δτ effect is not in doubt: low and high dose still move τ in opposite "
+      f"directions with a very large effect (Cohen's d = "
+      f"{float(_g('tau_change_from_baseline','low_vs_high_delta_t0.5')['effect_size']):.2f}, "
+      f"{_p(_g('tau_change_from_baseline','low_vs_high_delta_t0.5')['p_value'])}). Injury clearly "
+      "perturbs the circuit. What fails is the step from that group difference to **individual** "
+      "prediction: within a dose group, the size of a larva's acute Δτ does not tell you whether that "
+      "larva will convert.")
     A("")
 
-    A("### Leakage quantification")
+    A("### 2.3 Honest model selection")
     A("")
-    naive = s2["naive"]
-    A(f"| Split | Mean fold AUC | Pooled OOF AUC |")
-    A(f"|---|---|---|")
-    A(f"| {config.N_RANDOM_SPLIT_FOLDS}-fold **random** (leaky, reported only for comparison) | "
-      f"{naive['mean_fold_auc']:.3f} | {naive['pooled_auc']:.3f} |")
-    A(f"| Leave-one-clutch-out (**the honest estimate**) | {full['mean_fold_auc']:.3f} | "
-      f"{full['pooled_auc']:.3f} |")
+    A("Quoting the best row of an ablation table is selection on the test folds: the winner is partly "
+      "chosen by the noise in the folds it is scored on. To get an unbiased number, the choice of "
+      "predictor set is treated as one more hyper-parameter and tuned on the **inner** folds only.")
     A("")
-    A(f"Ignoring clutch inflates the mean fold AUC by **{s2['inflation']:+.3f}**. Any AUC from a "
-      "random split on this design should be discounted by roughly that much.")
+    A("| Held-out clutch | Selected by inner CV | C | Outer-fold AUC |")
+    A("|---|---|---|---|")
+    for r in sel["folds"].itertuples():
+        A(f"| {r.held_out} | `{r.selected_model}` | {r.selected_C:g} | {r.auc:.3f} |")
+    A("")
+    A(f"- **Honestly selected performance: mean fold AUC {sel['mean_fold_auc']:.3f}** "
+      f"(SD {sel['sd_fold_auc']:.3f}), pooled out-of-fold AUC {sel['pooled_auc']:.3f} "
+      f"[{sel_lo:.3f}, {sel_hi:.3f}].")
+    A(f"- Naively quoting the best table row gives "
+      f"{_v('model_selection','naive_best_row_mean_fold_auc'):.3f}. The optimism from picking it by "
+      f"eye is {_v('model_selection','selection_optimism'):+.3f} AUC, which is small here only "
+      "because the same model wins in most folds.")
+    A(f"- **Total out-of-fold accuracy {100*sel_cm['accuracy']:.1f}%** at threshold 0.50 "
+      f"({sel_cm['tp'] + sel_cm['tn']} of {n_fish} correct), balanced accuracy "
+      f"{100*sel_cm['balanced_accuracy']:.1f}%, sensitivity {100*sel_cm['sensitivity']:.1f}%, "
+      f"specificity {100*sel_cm['specificity']:.1f}%.")
+    A(f"- Permutation test on the **entire selection procedure** (selection re-run inside every one "
+      f"of the {perm['n_perm']} shuffles): null mean {sel_perm['null_mean']:.3f}, "
+      f"{_p(sel_perm['p_pooled'])}.")
+    A("")
+    A("This is the number to quote for best achievable accuracy on this design, because it is the "
+      "performance of a procedure that could be applied to a new clutch without knowing the answer "
+      "first.")
     A("")
 
-    A("### Full model coefficients")
+    A("### 2.4 Pre-specified model: full detail")
     A("")
-    A(f"Refitted on all {n_fish} fish with C = {s2['best_C']:g} (chosen by clutch-held-out CV on the "
-      "full set — this refit is for interpretation only and contributes nothing to the AUCs above). "
-      "Coefficients are on the standardised scale; CIs are clutch-clustered bootstrap percentiles "
-      f"({int(coefs.attrs['n_boot'])} resamples).")
+    A("Reported because it was pre-specified, not because it is the best.")
+    A("")
+    A(f"- Mean fold AUC {full['mean_fold_auc']:.3f} (SD {full['sd_fold_auc']:.3f}), pooled "
+      f"out-of-fold AUC {full['pooled_auc']:.3f} "
+      f"[{comp.loc[comp.key=='e_full','pooled_ci_low'].iloc[0]:.3f}, "
+      f"{comp.loc[comp.key=='e_full','pooled_ci_high'].iloc[0]:.3f}].")
+    A(f"- Permutation {_p(perm['p_pooled'])} against a null that reruns the whole nested CV "
+      f"{perm['n_perm']} times (null mean {perm['null_mean']:.3f}, SD {perm['null_sd']:.3f}).")
+    A(f"- Total out-of-fold accuracy {100*cm['accuracy']:.1f}% at threshold 0.50, balanced accuracy "
+      f"{100*cm['balanced_accuracy']:.1f}%, sensitivity {100*cm['sensitivity']:.1f}%, specificity "
+      f"{100*cm['specificity']:.1f}%, Brier {full['brier']:.3f}.")
+    A("")
+    A("Confusion matrix, out-of-fold, threshold 0.50:")
+    A("")
+    A("| | Predicted non-converter | Predicted converter |")
+    A("|---|---|---|")
+    A(f"| **Non-converter** | {cm['tn']} | {cm['fp']} |")
+    A(f"| **Converter** | {cm['fn']} | {cm['tp']} |")
+    A("")
+    thr_j = _v("confusion_matrix_youden", "threshold")
+    A(f"At the Youden-optimal threshold ({thr_j:.3f}) accuracy is "
+      f"{100*_v('confusion_matrix_youden','accuracy'):.1f}% with sensitivity "
+      f"{100*_v('confusion_matrix_youden','sensitivity'):.1f}%. That threshold was chosen on these "
+      "same out-of-fold predictions, so it is mildly optimistic and is shown only to indicate the "
+      "achievable operating range.")
+    A("")
+    A("**Coefficients** (refit on all data at C = "
+      f"{s2['best_C']:g}, standardised scale, clutch-clustered bootstrap CIs, "
+      f"{int(coefs.attrs['n_boot'])} resamples):")
     A("")
     A("| Predictor | β (per SD) | 95% CI | OR per SD | OR 95% CI |")
     A("|---|---|---|---|---|")
@@ -277,271 +319,214 @@ def write(ctx: dict) -> str:
     A("")
     A(f"Intercept {coefs.attrs['intercept']:+.3f}. \\* = bootstrap CI excludes zero.")
     A("")
-    A("An unpenalised `statsmodels` Logit fit is stored in "
-      "`results/tables/step2_unpenalised_logit.csv` for Wald p-values; it is reference material only, "
-      "since the reported model is penalised.")
-    A("")
     A("#### What the coefficients mean neurobiologically")
     A("")
-    A("τ is the number of trials required for the acoustic startle response to decay to its floor. "
-      "Startle habituation in larval zebrafish is not fatigue of the Mauthner cell, the hindbrain "
-      "command neuron for the C-start escape — it is produced by progressive **feedforward inhibition "
-      "onto the M-cell's lateral dendrite**, which reduces dendritic excitability with repeated "
-      "stimulation (Marsden & Granato, 2015). A larger τ therefore means inhibition is accumulating "
-      "more slowly, i.e. **reduced inhibitory gain in a defined sensorimotor circuit**. That is the "
-      "same quantity — the excitation/inhibition set point — whose collapse drives epileptogenesis "
-      "after traumatic brain injury.")
+    A("τ is the number of trials the acoustic startle response takes to decay to its floor. Startle "
+      "habituation in larval zebrafish is not fatigue of the Mauthner cell, the hindbrain command "
+      "neuron for the C-start escape. It is produced by progressive **feedforward inhibition onto the "
+      "M-cell lateral dendrite**, which reduces dendritic excitability with repeated stimulation "
+      "(Marsden & Granato, 2015). A larger τ therefore means inhibition accumulates more slowly, "
+      "i.e. **reduced inhibitory gain in a defined sensorimotor circuit**. That is the same "
+      "excitation/inhibition set point whose collapse drives epileptogenesis after brain injury.")
     A("")
     pre = coefs[coefs["predictor"] == "pre_tau"].iloc[0]
-    d05 = coefs[coefs["predictor"] == "dtau_0.5"].iloc[0]
-    d24 = coefs[coefs["predictor"] == "dtau_24"].iloc[0]
-    A(f"- **`pre_tau` (β = {pre.coef_standardised:+.3f}, OR {pre.odds_ratio_per_SD:.2f} per SD).** "
-      "Fish that habituate more slowly *before* any injury are more likely to convert. This is a "
-      "predisposition term: baseline inhibitory tone varies between individuals, and a fish that "
-      "starts nearer the seizure threshold has less reserve to lose. It is the animal-model analogue "
-      "of the pre-injury risk factors that modify post-traumatic epilepsy risk in humans, and is "
-      "consistent with a two-hit framing — susceptibility plus insult.")
-    A(f"- **`z_dtau_0.5` (β = {d05.coef_standardised:+.3f}, OR {d05.odds_ratio_per_SD:.2f} per SD).** "
-      "The acute (30 min) shift in inhibitory gain, measured against the fish's own pre-injury "
-      "baseline and standardised within dose. This is the window of the immediate post-traumatic "
-      "glutamate surge and acute interneuron dysfunction; a larger dose-appropriate deviation "
-      "predicts conversion.")
-    A(f"- **`z_dtau_24` (β = {d24.coef_standardised:+.3f}, OR {d24.odds_ratio_per_SD:.2f} per SD).** "
-      "The 24 h shift indexes whether the circuit has renormalised. Failure to return toward baseline "
-      "by 24 h is the behavioural signature of entering the **latent period** — the interval during "
-      "which the network is being remodelled but spontaneous seizures have not yet appeared. That "
-      "both the 0.5 h and 24 h terms carry independent weight says the trajectory matters, not just "
-      "the peak.")
     dose_row = coefs[coefs["predictor"] == "dose"].iloc[0]
-    A(f"- **`dose` (β = {dose_row.coef_standardised:+.3f}, CI "
-      f"[{dose_row.ci_low:+.3f}, {dose_row.ci_high:+.3f}]).** The one coefficient whose CI includes "
-      "zero, and that is the expected result. Dose is in the model as a **moderator, not a main "
-      "effect**: it tells the model which direction a pathological Δτ points in (see Step 4). Remove "
-      "it and the two dose groups' Δτ distributions overlap in a way that cancels the signal — "
-      "which is exactly what the ablation table shows.")
+    A(f"- **`pre_tau` (β = {pre.coef_standardised:+.3f}, OR {pre.odds_ratio_per_SD:.2f} per SD), the "
+      "dominant term.** Larvae that habituate more slowly *before* any injury are more likely to "
+      "convert. Baseline inhibitory tone varies between individuals, and an animal that starts nearer "
+      "the seizure threshold has less reserve to lose. This is a susceptibility term, the animal "
+      "analogue of pre-injury risk factors that modify post-traumatic epilepsy risk in humans, and it "
+      "fits a two-hit framing of predisposition plus insult.")
+    A(f"- **`dose` (β = {dose_row.coef_standardised:+.3f}).** A real main effect here: conversion "
+      "rises monotonically with blast dose.")
+    A("- **The Δτ terms.** Both intervals are wide and the 0.5 h term straddles zero. Given that the "
+      "ablation shows they cost AUC, the honest reading is that they carry no individual-level "
+      "information in this cohort, not that they carry a small amount.")
     A("")
-
-    A("### Classification and calibration (out-of-fold)")
+    A("### 2.5 Leakage quantification")
     A("")
-    A("| | Predicted non-converter | Predicted converter |")
+    naive = s2["naive"]
+    A("| Split | Mean fold AUC | Pooled OOF AUC |")
     A("|---|---|---|")
-    A(f"| **Non-converter** | {cm['tn']} | {cm['fp']} |")
-    A(f"| **Converter** | {cm['fn']} | {cm['tp']} |")
+    A(f"| {config.N_RANDOM_SPLIT_FOLDS}-fold **random** (leaky, for comparison only) | "
+      f"{naive['mean_fold_auc']:.3f} | {naive['pooled_auc']:.3f} |")
+    A(f"| Leave-one-clutch-out (**the honest estimate**) | {full['mean_fold_auc']:.3f} | "
+      f"{full['pooled_auc']:.3f} |")
     A("")
-    A(f"**Total out-of-fold accuracy = {100*cm['accuracy']:.1f}%** at the default 0.50 threshold "
-      f"({cm['tp'] + cm['tn']} of {n_fish} injured fish classified correctly). Balanced accuracy "
-      f"{100*cm['balanced_accuracy']:.1f}%, sensitivity {100*cm['sensitivity']:.1f}%, specificity "
-      f"{100*cm['specificity']:.1f}%, PPV {100*cm['ppv']:.1f}%, NPV {100*cm['npv']:.1f}%. "
-      f"Brier score {full['brier']:.3f} (0.25 would be uninformative at this prevalence).")
+    A(f"Ignoring clutch inflates the mean fold AUC by **{s2['inflation']:+.3f}**. Clutches are sibling "
+      "groups run on separate days; a random split puts siblings on both sides of the partition and "
+      "the model learns clutch identity. Any AUC from a random split on this design should be "
+      "discounted by roughly this much.")
     A("")
-    thr_j = float(_g("confusion_matrix_youden", "threshold")["value"])
-    acc_j = float(_g("confusion_matrix_youden", "accuracy")["value"])
-    bal_j = float(_g("confusion_matrix_youden", "balanced_accuracy")["value"])
-    sen_j = float(_g("confusion_matrix_youden", "sensitivity")["value"])
-    spe_j = float(_g("confusion_matrix_youden", "specificity")["value"])
-    A(f"At the Youden-optimal operating point (threshold {thr_j:.3f}) accuracy is "
-      f"{100*acc_j:.1f}% (balanced {100*bal_j:.1f}%, sensitivity {100*sen_j:.1f}%, specificity "
-      f"{100*spe_j:.1f}%). That threshold was chosen on these same out-of-fold predictions, so it is "
-      "mildly optimistic and is quoted only to show the achievable operating range. **The 0.50 "
-      "figure is the one to cite**, and AUC — which is threshold-free — remains the primary metric.")
-    A("")
-    A("Calibration matters more than accuracy for a screening biomarker: a model that ranks fish "
-      "correctly but reports 0.9 for a fish that converts 60% of the time would misallocate any "
-      "intervention trial built on it. The out-of-fold calibration curve "
-      "(`fig05_confusion_calibration.png`, centre panel) tracks the diagonal within the resolution "
-      f"5 quantile bins allow at n = {n_fish}.")
-    A("")
-    gz = _g("sensitivity", "global_z_mean_fold_auc")
-    A(f"*Sensitivity:* z-scoring within dose on the whole dataset instead of per training fold gives "
-      f"mean fold AUC {float(gz['value']):.3f} vs {full['mean_fold_auc']:.3f} fold-safe — the "
-      "leakage-free implementation costs essentially nothing.")
-    A("")
-    A("Figures: `fig03_roc_nested_comparison.png`, `fig05_confusion_calibration.png`, "
-      "`fig06_coefficients.png`, `fig07_fold_auc_by_model.png`.")
+    A("Figures: `fig03_roc_nested_comparison.png`, `fig04_permutation_null.png`, "
+      "`fig05_confusion_calibration.png`, `fig06_coefficients.png`, `fig07_fold_auc_by_model.png`.")
     A("")
     A("---")
     A("")
 
-    # ---------------------------------------------------------------- step 3
-    A("## Step 3 — Orthogonal validation: paired c-fos pools")
+    # -------------------------------------------------------------- step 3
+    A("## Step 3. Molecular validation: paired c-fos pools")
     A("")
-    A("### Why this is orthogonal")
+    A("### 3.1 What this validates, and what it does not")
     A("")
-    A("Steps 1–2 are entirely behavioural: every number derives from how far a larva swims on trial "
-      "*k*. If that pipeline contained a systematic artefact — a tracking bias, a plate-position "
-      "effect, a curve-fitting quirk — no amount of internal cross-validation would reveal it, "
-      "because every fold would inherit the same artefact. Step 3 tests the same hypothesis through "
-      "a **different measurement modality on a different cohort of fish**: quantitative PCR of an "
-      "immediate early gene in the `cf_*` larvae, who were sacrificed for molecular work and never "
-      "contributed a row to the prediction model.")
+    A("In this dataset the qPCR pools are labelled by **realised outcome** (`converter` / "
+      "`non_converter`), not by a predicted risk score, and they are drawn from the same `zf_*` "
+      "larvae that train the model. Two consequences, both stated rather than glossed:")
+    A("")
+    A("1. This is **not** an independent test of the prediction model. It is a test of the **outcome "
+      "variable the model predicts**: does a larva scored as converted carry a molecular signature of "
+      "elevated network activity, or is `converted` merely a behavioural scoring threshold?")
+    A("2. Model and assay share animals, so sample independence is not claimed.")
+    A("")
+    A("What makes it worth doing is that the modality is genuinely different. Everything in Step 2 "
+      "derives from how far a larva swam. If that pipeline carried a systematic artefact, no amount "
+      "of internal cross-validation would reveal it, because every fold would inherit the artefact. "
+      "Transcript abundance shares no instrumentation with swim tracking.")
     A("")
     A("`fosab` is the zebrafish orthologue of *c-fos*, the canonical immediate early gene. Sustained "
-      "neuronal depolarisation raises intracellular Ca²⁺, which drives CaMK- and MAPK/ERK-dependent "
-      "phosphorylation of CREB and transcription from the *fos* promoter within roughly 15–30 minutes "
-      "(Sheng & Greenberg, 1990). c-fos transcript level is therefore a molecular integrator of "
-      "recent network activity, and it is the standard readout for mapping seizure-recruited circuits "
-      "— including in the original characterisation of chemically induced seizures in larval "
-      "zebrafish (Baraban et al., 2005). Normalisation is against `rpl13a`, one of the reference "
-      "genes validated as stable across zebrafish development (Tang et al., 2007), by the 2^−ΔΔCт "
-      "method (Livak & Schmittgen, 2001).")
+      "depolarisation raises intracellular Ca²⁺, driving CaMK- and MAPK/ERK-dependent phosphorylation "
+      "of CREB and transcription from the *fos* promoter within roughly 15 to 30 minutes (Sheng & "
+      "Greenberg, 1990). c-fos transcript is a molecular integrator of recent network activity and "
+      "the standard readout for mapping seizure-recruited circuits, including in the original "
+      "characterisation of chemically induced seizures in larval zebrafish (Baraban et al., 2005). "
+      "Normalisation is against `rpl13a`, a validated zebrafish reference gene (Tang et al., 2007), "
+      "by the 2^-ΔΔCт method (Livak & Schmittgen, 2001).")
     A("")
-    A("So the prediction is specific and falsifiable: **if the behavioural risk score is tracking "
-      "genuine network hyperexcitability rather than a measurement artefact, larvae binned as "
-      "high-risk on behaviour should carry more c-fos transcript than their low-risk pool-mates.** "
-      "Behaviour and transcription share no instrumentation, no analyst, and no fish.")
+    A("### 3.2 Why six pairs and not nine")
     A("")
-    A("### Statistical treatment")
+    A(f"There are {int(_v('design','n_pools'))} pools, three larvae each. They are not independent "
+      "units: they are matched within (group × clutch) cells. The counts are unbalanced by biology, "
+      "because conversion is rare in sham:")
     A("")
-    A("The 18 pools are **9 matched pairs** — one high_risk and one low_risk pool per "
-      "(group × clutch) cell — and are analysed as such. Treating them as 18 independent units would "
-      "roughly double the nominal degrees of freedom and ignore the plate/clutch matching.")
+    A("| Group | Converter pools per clutch | Non-converter pools per clutch |")
+    A("|---|---|---|")
+    A("| sham | 0 | 2 |")
+    A("| low_impact | 1 | 2 |")
+    A("| high_impact | 2 | 2 |")
     A("")
-    A("| Contrast | Pairs | Mean Δ (high − low) | 95% CI | Paired t | p | Cohen's dz | Wilcoxon p |")
+    A("A balanced nine-pair design is therefore impossible: **sham cells contain no converter pool at "
+      "all**, because too few sham larvae converted to fill one. The pairing the data support is "
+      f"**{s3['all']['n']} matched cells**, the injured group × clutch combinations, with replicate "
+      "pools within a cell averaged before pairing. Sham is used instead as an unpaired reference "
+      "level, which answers a complementary question in section 3.4.")
+    A("")
+    A("### 3.3 Paired result")
+    A("")
+    A("| Contrast | Pairs | Mean Δ (converter - non-converter) | 95% CI | Paired t | p | Cohen's dz | Wilcoxon p |")
     A("|---|---|---|---|---|---|---|---|")
-    for name, key in [("All pairs", "all"), ("Injured only", "injured"), ("**Sham only (control)**", "sham")]:
+    for name, key in [("Fold-change scale (primary)", "all"), ("log₂ scale", "all_log2")]:
         r = s3[key]
         A(f"| {name} | {r['n']} | {r['mean']:+.4f} | [{r['ci'][0]:+.4f}, {r['ci'][1]:+.4f}] | "
-          f"t({r['n']-1}) = {r['t']:+.3f} | {_fmt_p(r['p'])} | {r['dz']:+.3f} | {_fmt_p(r['p_wilcoxon'])} |")
-    lg = s3["all_log2"]
-    A(f"| All pairs, log2 scale | {lg['n']} | {lg['mean']:+.4f} | [{lg['ci'][0]:+.4f}, "
-      f"{lg['ci'][1]:+.4f}] | t({lg['n']-1}) = {lg['t']:+.3f} | {_fmt_p(lg['p'])} | "
-      f"{lg['dz']:+.3f} | {_fmt_p(lg['p_wilcoxon'])} |")
+          f"t({r['n']-1}) = {r['t']:+.3f} | {_fmt_p(r['p'])} | {r['dz']:+.3f} | "
+          f"{_fmt_p(r['p_wilcoxon'])} |")
     A("")
-    nsign = _g("cfos_injured_pairs", "n_pairs_high_gt_low")
-    A(f"Direction consistency: {int(nsign['value'])}/{int(nsign['n'])} injured pairs have "
-      f"high_risk > low_risk (exact binomial sign test, {_p(nsign['p_value'])}).")
+    gm = float(2 ** s3["all_log2"]["mean"])
+    gm_lo, gm_hi = float(2 ** s3["all_log2"]["ci"][0]), float(2 ** s3["all_log2"]["ci"][1])
+    A(f"Converter pools carry **{100*(gm-1):.1f}% more c-fos transcript** relative to `rpl13a` than "
+      f"matched non-converter pools (geometric mean ratio {gm:.3f}, 95% CI [{gm_lo:.3f}, "
+      f"{gm_hi:.3f}], back-transformed from the paired log₂ analysis, which is the appropriate scale "
+      "for a fold change).")
     A("")
-    A(f"**The sham pairs are the control and they behave as they should** — mean difference "
-      f"{s3['sham']['mean']:+.4f}, {_p(s3['sham']['p'])}, no systematic high-vs-low separation. "
-      "That is what rules out a pooling or plate artefact.")
+    A(f"Direction is consistent in **{s3['n_positive']} of {s3['all']['n']}** pairs "
+      f"(exact binomial sign test, {_p(s3['p_sign'])}).")
     A("")
-    A(f"Read the injured-only row carefully: the point estimate is the largest of the three "
-      f"({s3['injured']['mean']:+.4f}, dz = {s3['injured']['dz']:.2f}) but with only "
-      f"{s3['injured']['n']} pairs it does not reach significance on its own "
-      f"({_p(s3['injured']['p'])}). The all-pairs test is the primary one; the injured and sham "
-      "rows show where the effect sits, not two independent confirmations of it.")
+    A("### 3.4 Specificity control: does c-fos track conversion, or just injury?")
     A("")
-    A("No regression of c-fos on a pooled continuous risk score across all 18 pools was run. The risk "
-      "score is not on a comparable scale between dose groups (low and high dose move τ in opposite "
-      "directions), so pooling destroys the contrast the pairing exists to isolate.")
+    bl = s3["baseline"]
+    A("Since sham cannot be paired, the control question is turned around. If injury alone raised "
+      "c-fos, then **non-converter** pools from injured groups should sit above non-converter pools "
+      "from sham. They do not:")
     A("")
-    A("### Interpretation")
+    A(f"- Injured non-converter pools {bl['mean_inj']:.3f} versus sham non-converter pools "
+      f"{bl['mean_sham']:.3f}; difference {bl['diff']:+.3f}, 95% CI [{bl['ci'][0]:+.3f}, "
+      f"{bl['ci'][1]:+.3f}], Welch t = {bl['t']:+.3f}, {_p(bl['p'])}, d = {bl['d']:.2f}.")
     A("")
-    gm_ratio = float(2 ** s3["all_log2"]["mean"])
-    gm_lo, gm_hi = (float(2 ** s3["all_log2"]["ci"][0]), float(2 ** s3["all_log2"]["ci"][1]))
-    A(f"Larvae flagged as high-risk by a purely behavioural model carry **{100*(gm_ratio-1):.1f}% "
-      f"more c-fos transcript** relative to `rpl13a` than behaviourally low-risk siblings processed "
-      f"on the same plate (geometric mean ratio {gm_ratio:.3f}, 95% CI [{gm_lo:.3f}, {gm_hi:.3f}], "
-      "obtained by back-transforming the paired log2 analysis — the appropriate scale for a fold "
-      "change). Elevated baseline IEG expression "
-      "in the absence of any provoking stimulus is what a chronically over-active network looks like "
-      "transcriptionally — the molecular counterpart of the reduced inhibitory gain that a long τ "
-      "reports behaviourally. Two independent measurement modalities, applied to different fish, "
-      "point at the same latent variable.")
+    A("**A null result here is the desired one**, and it is what rules out the trivial explanation. "
+      "The c-fos elevation tracks *which larvae converted*, not *which larvae were hit*. That is the "
+      "specific claim, and it is the one that makes the assay informative about epileptogenesis "
+      "rather than about injury exposure.")
     A("")
-    A("This is corroboration, not proof. It is a bulk measurement on pooled tissue, so it cannot "
-      "localise the signal to a cell type or region — it cannot distinguish loss of parvalbumin-"
-      "positive interneuron function from increased glutamatergic drive, and both are documented "
-      "consequences of traumatic brain injury.")
+    A("Elevated immediate early gene expression in the absence of any provoking stimulus is what a "
+      "chronically over-active network looks like transcriptionally. This is corroboration, not "
+      "proof: it is a bulk measurement on pooled tissue, so it cannot localise the signal to a cell "
+      "type or region, and it cannot distinguish loss of parvalbumin-positive interneuron function "
+      "from increased glutamatergic drive. Both are documented consequences of brain injury.")
     A("")
-    A("Figure: `fig08_cfos_paired.png` (9 paired lines, plus within-pair differences by group).")
+    A("No regression of c-fos on a pooled continuous risk score is run. The pools are outcome-"
+      "labelled, and the risk score is not comparable between dose groups.")
+    A("")
+    A("Figure: `fig08_cfos_paired.png`.")
     A("")
     A("---")
     A("")
 
-    # ---------------------------------------------------------------- step 4
-    A("## Step 4 — Descriptive results")
+    # -------------------------------------------------------------- step 4
+    A("## Step 4. Descriptive results")
     A("")
-    A("### Groups start equal")
+    A("### 4.1 Groups start equal")
     A("")
-    A(f"At the pre-injury baseline (t = −1), τ does not differ between groups: "
-      f"F({anova['df']}) = {float(anova['statistic']):.3f}, {_p(anova['p_value'])}, "
-      f"η² = {float(anova['effect_size']):.4f}; Kruskal–Wallis "
-      f"H = {float(_g('baseline_equivalence','kruskal_tau')['statistic']):.3f}, "
+    A(f"At the pre-injury baseline, τ does not differ between groups: F({anova['df']}) = "
+      f"{float(anova['statistic']):.3f}, {_p(anova['p_value'])}, η² = "
+      f"{float(anova['effect_size']):.4f}; Kruskal-Wallis H = "
+      f"{float(_g('baseline_equivalence','kruskal_tau')['statistic']):.3f}, "
       f"{_p(_g('baseline_equivalence','kruskal_tau')['p_value'])}. Baseline locomotion likewise "
-      f"({_p(_g('baseline_equivalence','anova_baseline_locomotion')['p_value'])}). Every fish is "
-      "its own control, and the groups are exchangeable before the blast.")
+      f"({_p(_g('baseline_equivalence','anova_baseline_locomotion')['p_value'])}). Randomisation "
+      "held, and every larva is its own control thereafter.")
     A("")
-    A("### τ moves in opposite directions by dose")
+    A("### 4.2 τ moves in opposite directions by dose")
     A("")
     tau = s4["tau_summary"]
     A("| Group | " + " | ".join(f"t = {t:g} h" for t in config.TIMEPOINTS) + " |")
     A("|---|" + "---|" * len(config.TIMEPOINTS))
     for g in config.GROUPS:
         row = tau[tau["group"] == g].set_index("timepoint_h")
-        cells = []
-        for t in config.TIMEPOINTS:
-            m, s = row.loc[t, "mean"], row.loc[t, "sem"]
-            cells.append(f"{m:.2f} ± {s:.2f}")
+        cells = [f"{row.loc[t,'mean']:.2f} ± {row.loc[t,'sem']:.2f}" for t in config.TIMEPOINTS]
         A(f"| {config.GROUP_LABELS[g]} | " + " | ".join(cells) + " |")
     A("")
     A("(mean ± SEM, trials to habituate)")
     A("")
     lv = _g("tau_change_from_baseline", "low_vs_high_delta_t0.5")
-    A(f"At 0.5 h, Δτ from each fish's own baseline is **{float(_g('tau_change_from_baseline','low_impact_delta_t0.5')['value']):+.2f}** "
-      f"trials in low_impact and **{float(_g('tau_change_from_baseline','high_impact_delta_t0.5')['value']):+.2f}** "
-      f"in high_impact — a habituation deficit versus a fatigue-like collapse. Welch "
-      f"t = {float(lv['statistic']):.2f}, {_p(lv['p_value'])}, "
-      f"Cohen's d = {float(lv['effect_size']):.2f}.")
+    A(f"At 0.5 h, Δτ from each larva's own baseline is "
+      f"**{_v('tau_change_from_baseline','low_impact_delta_t0.5'):+.2f}** trials in low impact and "
+      f"**{_v('tau_change_from_baseline','high_impact_delta_t0.5'):+.2f}** in high impact. Welch "
+      f"t = {float(lv['statistic']):.2f}, {_p(lv['p_value'])}, Cohen's d = "
+      f"{float(lv['effect_size']):.2f}.")
     A("")
-    A("**This is why `dose` must be in the model.** Pooled across doses the two shifts partly cancel, "
-      "and a dose-blind model of Δτ collapses toward chance — model (a) in the comparison table is "
-      "the empirical version of that point.")
+    A("The divergence is two different lesions on the same circuit, not a nuisance to correct away:")
     A("")
-    A("The divergence is not a nuisance to be corrected away; it is two different lesions on the same "
-      "circuit:")
+    A("- **Low dose, τ rises (habituation deficit).** Sublethal blast preferentially compromises the "
+      "feedforward inhibition that normally accumulates onto the Mauthner cell across trials. "
+      "Inhibition builds more slowly, the escape response persists, τ lengthens. This is "
+      "disinhibition, and it maps onto the loss of GABAergic control reported after experimental "
+      "brain injury.")
+    A("- **High dose, τ falls (fatigue, not learning).** A shorter τ looks superficially like better "
+      "habituation. It is not. Greater energy deposition depresses the excitatory limb as well: the "
+      "acute metabolic crisis and depolarisation that follow severe injury reduce the startle "
+      "response itself, so the fitted decay is fast because the response never had far to fall.")
     A("")
-    A("- **Low dose → τ rises (habituation deficit).** Sublethal blast preferentially compromises the "
-      "feedforward inhibitory drive that normally accumulates onto the Mauthner cell across repeated "
-      "trials. Inhibition builds more slowly, the escape response persists, and τ lengthens. This is "
-      "disinhibition, and it is the direction that maps most directly onto the loss of GABAergic "
-      "control reported after experimental brain injury.")
-    A("- **High dose → τ falls (fatigue, not learning).** A shorter τ looks superficially like better "
-      "habituation. It is not. Greater energy deposition depresses the excitatory limb of the circuit "
-      "as well — the acute metabolic crisis and depolarisation that follow severe injury reduce the "
-      "startle response itself, so the fitted decay is fast because the response never had far to "
-      "fall. The fitted amplitude term and the reduced overall responsiveness in the high-impact "
-      "group at 0.5 h are consistent with this reading.")
+    A("Both are pathological and they move the same scalar in opposite directions, which is why any "
+      "model using Δτ must also encode dose. **This group-level effect is robust. What this dataset "
+      "shows is that it does not translate into individual prediction** (section 2.2).")
     A("")
-    A("Both are pathological, and they move the same scalar in opposite directions. A model given "
-      "Δτ without dose is asked to treat +4 trials and −3 trials as opposite kinds of evidence when "
-      "they are the same kind of evidence about two different lesions. Encoding dose resolves the "
-      "ambiguity, which is precisely why the full model gains what it does over the ablations.")
-    A("")
-    A("Note also that neither dose group has returned to its baseline by 24 h "
-      f"(low impact {float(_g('tau_change_from_baseline','low_impact_delta_t24')['value']):+.2f}, "
-      f"high impact {float(_g('tau_change_from_baseline','high_impact_delta_t24')['value']):+.2f} "
-      "trials from each fish's own pre-injury session). A circuit that has not renormalised a day "
-      "after the insult is a circuit still being remodelled — the behavioural correlate of the latent "
-      "period that precedes spontaneous seizures.")
-    A("")
-    A("### Converters vs non-converters")
-    A("")
-    A("Trajectories are shown separately per dose in `fig11_converter_trajectories.png`, for the same "
-      "reason: pooling the doses would average away the contrast. Per-dose converter/non-converter "
-      "contrasts at each timepoint are in `all_statistics.csv` under `converter_contrast`.")
-    A("")
-    A("### Operational metrics")
+    A("### 4.3 Operational metrics")
     A("")
     A("| Metric | Value |")
     A("|---|---|")
-    A(f"| Sessions | {int(_g('operations','n_sessions')['value'])} (3 clutches × 5 timepoints) |")
-    A(f"| Fish-sessions recorded | {int(_g('operations','total_fish_sessions_recorded')['value'])} |")
-    A(f"| Fish per hour | {float(_g('operations','fish_per_hour_mean')['value']):.1f} ± "
-      f"{float(_g('operations','fish_per_hour_sd')['value']):.1f} |")
-    A(f"| Operator minutes per fish | {float(_g('operations','operator_min_per_fish_mean')['value']):.2f} ± "
-      f"{float(_g('operations','operator_min_per_fish_sd')['value']):.2f} |")
-    A(f"| Consumables cost per fish | ${float(_g('operations','cost_per_fish_usd_mean')['value']):.3f} |")
-    A(f"| Total consumables | ${float(_g('operations','total_consumables_usd')['value']):.2f} |")
-    A(f"| Total operator time | {float(_g('operations','total_operator_hours')['value']):.1f} h |")
+    A(f"| Sessions | {int(_v('operations','n_sessions'))} "
+      f"({int(_v('operations','n_habituation_sessions'))} habituation, "
+      f"{int(_v('operations','n_outcome_sessions'))} outcome) |")
+    A(f"| Fish-sessions recorded | {int(_v('operations','total_fish_sessions_recorded'))} |")
+    A(f"| Fish per hour | {_v('operations','fish_per_hour_mean'):.1f} ± "
+      f"{_v('operations','fish_per_hour_sd'):.1f} |")
+    A(f"| Operator minutes per fish | {_v('operations','operator_min_per_fish_mean'):.2f} ± "
+      f"{_v('operations','operator_min_per_fish_sd'):.2f} |")
+    A(f"| Consumables cost per fish | ${_v('operations','cost_per_fish_usd_mean'):.3f} |")
+    A(f"| Total consumables | ${_v('operations','total_consumables_usd'):.2f} |")
+    A(f"| Total operator time | {_v('operations','total_operator_hours'):.1f} h |")
     att = _g("operations", "attrition_rate_ci")
-    A(f"| Attrition | {int(_g('operations','fish_lost_total')['value'])}/"
-      f"{int(_g('operations','fish_at_baseline')['value'])} = "
-      f"{100*float(att['value']):.1f}% [{100*float(att['ci_low']):.1f}%, "
-      f"{100*float(att['ci_high']):.1f}%] |")
-    A("")
-    A("`consumables_cost_usd` is treated as a per-session total; it tracks `n_fish_recorded` almost "
-      "exactly (r = 0.999), which is consistent with that reading.")
+    A(f"| Attrition | {int(_v('operations','fish_lost_total'))}/"
+      f"{int(_v('operations','fish_at_baseline'))} = {100*float(att['value']):.1f}% "
+      f"[{100*float(att['ci_low']):.1f}%, {100*float(att['ci_high']):.1f}%] |")
     A("")
     A("Figures: `fig09_habituation_curves.png`, `fig10_tau_by_timepoint.png`, "
       "`fig11_converter_trajectories.png`, `fig12_operations.png`.")
@@ -549,17 +534,15 @@ def write(ctx: dict) -> str:
     A("---")
     A("")
 
-    # ---------------------------------------------------------------- ptz
-    A("## PTZ challenge — secondary and underpowered")
+    # ----------------------------------------------------------------- ptz
+    A("## Step 5. PTZ seizure threshold")
     A("")
-    A("Pentylenetetrazol is a non-competitive GABAₐ receptor antagonist: it binds at the "
-      "picrotoxin site, reduces chloride conductance, and removes inhibitory brake from the network. "
-      "In larval zebrafish it produces stereotyped, dose-dependent seizure behaviour with "
-      "electrographic correlates (Baraban et al., 2005), which makes it the standard pharmacological "
-      "probe of **seizure threshold**. The logic here is complementary to the behavioural model: "
-      "if injured larvae have less inhibitory reserve, a fixed challenge dose should push more of "
-      "them across threshold. This tests the same excitation/inhibition hypothesis with a drug "
-      "rather than with a habituation protocol.")
+    A("Pentylenetetrazol is a non-competitive GABAₐ receptor antagonist: it binds at the picrotoxin "
+      "site, reduces chloride conductance and removes inhibitory brake from the network. In larval "
+      "zebrafish it produces stereotyped, dose-dependent seizure behaviour with electrographic "
+      "correlates (Baraban et al., 2005), which makes it the standard pharmacological probe of "
+      "**seizure threshold**. If injured larvae have less inhibitory reserve, a fixed challenge dose "
+      "should push more of them across it.")
     A("")
     pz = s4["ptz"]
     A("| Group | Seized / n | Proportion | Wilson 95% CI | Median latency (s) |")
@@ -569,115 +552,174 @@ def write(ctx: dict) -> str:
           f"[{r.ci_low:.2f}, {r.ci_high:.2f}] | {r.median_latency_s:.0f} |")
     A("")
     chi = _g("ptz", "chi_square")
-    A(f"χ²({int(chi['df'])}) = {float(chi['statistic']):.3f}, {_p(chi['p_value'])}, "
-      f"Cramér's V = {float(chi['effect_size']):.3f}, total n = {int(chi['n'])}.")
-    A("")
     pw = _g("ptz", "post_hoc_power_sham_vs_injured")
-    A(f"> **Explicit statement of limitation.** This probe is underpowered. With "
-      f"{int(chi['n'])} fish split across three groups, post-hoc power for the observed "
-      f"sham-versus-injured difference (Cohen's h = {float(pw['effect_size']):.2f}) is only "
-      f"**{100*float(pw['value']):.0f}%**. The minimum expected cell count is "
-      f"{float(_g('ptz','min_expected_cell_count')['value']):.2f}. It is reported as a directional "
-      f"check consistent with the primary result, and **no conclusion in this report rests on it.**")
+    A(f"χ²({int(chi['df'])}) = {float(chi['statistic']):.3f}, {_p(chi['p_value'])}, Cramér's V = "
+      f"{float(chi['effect_size']):.3f}, total n = {int(chi['n'])}.")
     A("")
+    verdict = _g("ptz", "power_verdict")
+    if verdict is not None and "underpowered" not in str(verdict["value"]):
+        A(f"**On power.** At this n the sham-versus-injured contrast is adequately powered "
+          f"({100*float(pw['value']):.0f}%, Cohen's h = {float(pw['effect_size']):.2f}), so unlike "
+          "the pilot cohort this probe is not merely directional. It remains a **secondary** outcome "
+          "for a different reason: it is a group-level comparison, and the primary claim of this "
+          "project is about predicting individual animals, which a group difference does not "
+          "address. The low-versus-high dose contrast is still not powered, and the two injured "
+          "groups are not distinguishable here "
+          f"({_p(_g('ptz','fisher_exact_low_vs_high')['p_value'])}).")
+    else:
+        A(f"**This probe is underpowered.** Post-hoc power for the observed sham-versus-injured "
+          f"difference is {100*float(pw['value']):.0f}%. It is reported as a directional check and no "
+          "conclusion rests on it.")
+    A("")
+
+    conf = [r for r in sb.as_frame().itertuples() if r.analysis == "ptz_confound"]
+    if conf:
+        A("### 5.1 Is the challenge a confound?")
+        A("")
+        A("PTZ is a proconvulsant given to a subset of the **same** larvae that supply the conversion "
+          "outcome, so the obvious worry is that the drug caused the outcome. It did not: conversion "
+          "rates are effectively identical between challenged and unchallenged larvae within every "
+          "group.")
+        A("")
+        A("| Group | Challenged | Not challenged | Fisher p |")
+        A("|---|---|---|---|")
+        for r in conf:
+            note = str(r.notes)
+            ch = note.split("challenged ")[1].split(",")[0]
+            nc = note.split("not challenged ")[1]
+            A(f"| {r.quantity.replace('conversion_challenged_vs_not_','')} | {ch} | {nc} | "
+              f"{_fmt_p(r.p_value)} |")
+        A("")
+
+    orr = _g("ptz_vs_conversion", "odds_ratio_seized_given_converted")
+    lat = _g("ptz_vs_conversion", "latency_converter_minus_nonconverter")
+    if orr is not None:
+        A("### 5.2 Seizure threshold and conversion coincide")
+        A("")
+        A("Because PTZ and conversion are measured on the same larvae, they can be crossed directly. "
+          "This was not pre-specified and is exploratory.")
+        A("")
+        A(f"- Larvae that seized under PTZ were far more likely to have converted: Fisher exact odds "
+          f"ratio **{float(orr['value']):.1f}**, {_p(orr['p_value'])}, n = {int(orr['n'])}.")
+        if lat is not None:
+            A(f"- Converters reached their first seizure sooner: {str(lat['notes'])}, "
+              f"Mann-Whitney U = {float(lat['statistic']):.0f}, {_p(lat['p_value'])}.")
+        A("")
+        A("Two assays that share no measurement apparatus, a pharmacological threshold test and a "
+          "spontaneous-activity recording, agree at the level of the individual animal. That is the "
+          "strongest evidence in this report that `converted` denotes a real hyperexcitable state "
+          "rather than a scoring artefact. It says nothing about whether that state is *predictable* "
+          "in advance, which is Step 2's job.")
+        A("")
     A("Figure: `fig13_ptz.png`.")
     A("")
     A("---")
     A("")
 
-    # ---------------------------------------------------------- limitations
+    # --------------------------------------------------------- limitations
     A("## Assumptions, checks and limitations")
     A("")
-    A("All assumption checks are printed to stdout during the run, tagged `[PASS]` or `[FLAG]`, and "
-      "the underlying statistics are in `all_statistics.csv`. In summary:")
+    A("Assumption checks print during every run tagged `[PASS]` or `[FLAG]`, and the underlying "
+      "statistics are in `all_statistics.csv`.")
     A("")
     A(f"- Curve fitting: {100*conv:.1f}% convergence, median R² {r2med:.3f}, "
-      f"{_plural(int(_g('curve_fit','n_tau_at_bound')['value']), 'session')} at a parameter bound.")
-    A(f"- Collinearity among the four predictors: max |r| = "
-      f"{float(_g('design_matrix','max_abs_predictor_correlation')['value']):.3f}; VIFs are in "
-      f"`all_statistics.csv` under `assumptions`.")
+      f"{_plural(int(_v('curve_fit','n_tau_at_bound')), 'session')} at a parameter bound.")
+    A(f"- Collinearity: max |r| among predictors = "
+      f"{_v('design_matrix','max_abs_predictor_correlation'):.3f}; all VIFs are in "
+      "`all_statistics.csv` under `assumptions`.")
     A(f"- Separation: the unpenalised Logit converged with max |β| = "
-      f"{float(_g('assumptions','max_abs_unpenalised_coef')['value']):.2f}, so the ridge penalty is "
-      "not masking complete separation.")
+      f"{_v('assumptions','max_abs_unpenalised_coef'):.2f}, so the ridge penalty is not masking "
+      "complete separation.")
     flagged = [g for g in config.GROUPS
                if (r := _g("baseline_equivalence", f"shapiro_tau_{g}")) is not None
                and float(r["p_value"]) <= 0.05]
     if flagged:
-        A(f"- **Flagged:** baseline τ deviates from normality in "
-          f"{', '.join(config.GROUP_LABELS[g].lower() for g in flagged)} "
-          f"(Shapiro–Wilk p ≤ 0.05). The ANOVA above is therefore backed by a Kruskal–Wallis test "
-          f"({_p(_g('baseline_equivalence','kruskal_tau')['p_value'])}), which agrees. ANOVA is "
-          "robust to this at these group sizes, but the non-parametric result is the one to quote if "
-          "the distributional assumption matters to a reader.")
-    A("- Paired c-fos differences: Shapiro–Wilk reported for each contrast; Wilcoxon is given "
-      "alongside every paired t-test as a distribution-free check.")
-    A("- Linearity of the logit is assumed for the three continuous predictors; quartile event rates "
-      "are printed as a coarse check.")
+        A(f"- **Flagged:** baseline τ departs from normality in "
+          f"{', '.join(config.GROUP_LABELS[g].lower() for g in flagged)} (Shapiro-Wilk p ≤ 0.05). "
+          f"The ANOVA is therefore backed by Kruskal-Wallis "
+          f"({_p(_g('baseline_equivalence','kruskal_tau')['p_value'])}), which agrees.")
+    A("- Paired c-fos differences: Shapiro-Wilk reported for each contrast, Wilcoxon alongside every "
+      "paired t-test.")
     A("")
     A("Real limitations, stated plainly:")
     A("")
-    A(f"- **n = {n_fish} with {n_events} events.** EPV = {epv:.1f} is at the accepted floor. The CIs on "
-      "the AUC and on every coefficient are wide, and they are reported rather than smoothed over.")
-    A("- **Three clutches means three outer folds.** The fold-to-fold spread is estimated from three "
-      "numbers; the SD across folds should be read as indicative, not precise.")
-    A(f"- **{int(_g('design_matrix','n_excluded_incomplete')['value'])} injured fish were dropped** for "
-      "a missing post-injury session. This is complete-case analysis; attrition is not obviously "
-      "outcome-related but has not been modelled.")
-    A("- **The c-fos validation is pooled material** — 9 pairs, 4 larvae per pool. It corroborates the "
-      "primary result; it does not independently establish it.")
-    A("- **PTZ is underpowered** (above), and the study is not designed to support any claim from it.")
+    A(f"- **The study's central hypothesis is not supported.** The acute Δτ terms, which the design "
+      "was built around, add nothing to individual prediction and slightly degrade it. What predicts "
+      "conversion is a pre-injury trait plus dose. Reporting this is the point of running the "
+      "ablation rather than fitting one model and describing it.")
+    A(f"- **n = {n_fish} with {n_events} events, EPV = {epv:.1f}**, below the conventional floor. "
+      "Coefficient intervals are wide. The two-predictor model that the data support clears the rule "
+      f"comfortably (EPV = {n_events/2:.1f}).")
+    A("- **Three clutches means three outer folds.** Fold-to-fold spread is estimated from three "
+      "numbers and should be read as indicative.")
+    A(f"- **{int(_v('design_matrix','n_excluded_incomplete'))} injured larvae were dropped** for a "
+      "missing session. This is a complete-case analysis; attrition has not been modelled.")
+    A("- **Conversion is a behavioural proxy.** Spontaneous burst activity is not "
+      "electrographically confirmed epilepsy, though the PTZ concordance in section 5.2 supports it.")
+    A("- **The c-fos and PTZ analyses share animals with the model cohort.** They validate the "
+      "outcome label, not the model's generalisation.")
+    A("- **`pre_tau` as a predictor cannot support the biomarker framing.** A variable measured "
+      "before injury is a susceptibility marker, not an acute readout, and it could not be used to "
+      "triage patients after an injury that has already happened.")
+    A("- **One species, one age, one injury model.** Generalisation to mammalian TBI is a hypothesis.")
     A("")
     A("## Conclusion")
     A("")
-    A(f"In this dataset, the acute trajectory of startle-habituation kinetics — measured against each "
-      f"fish's own pre-injury baseline and interpreted in the light of blast dose — separates injured "
-      f"larvae that go on to develop spontaneous burst activity from those that do not, with a "
-      f"cross-validated AUC of {full['pooled_auc']:.3f} "
-      f"(95% CI [{comp.loc[comp.key=='e_full','pooled_ci_low'].iloc[0]:.3f}, "
-      f"{comp.loc[comp.key=='e_full','pooled_ci_high'].iloc[0]:.3f}]), "
-      f"a total out-of-fold accuracy of {100*cm['accuracy']:.1f}%, and a permutation "
-      f"{_p(perm['p_pooled'])} against a null that reruns the entire nested cross-validation. The "
-      "ablation table shows this is not explicable by sickness, by injury severity, or by a "
-      "pre-existing trait alone. An independent molecular assay on a separate cohort of larvae points "
-      "the same way.")
+    A(f"Conversion to spontaneous burst activity is predictable in this cohort at a cross-validated "
+      f"AUC of {sel['mean_fold_auc']:.3f} and total out-of-fold accuracy of "
+      f"{100*sel_cm['accuracy']:.1f}%, with the predictor set chosen inside the cross-validation and "
+      f"a permutation {_p(sel_perm['p_pooled'])} against a null that reruns the entire procedure. "
+      "Baseline locomotion is ruled out as an explanation, and clutch-aware splitting shows a random "
+      f"split would have inflated the estimate by {s2['inflation']:+.3f} AUC.")
     A("")
-    A("What that supports is a mechanistic claim of modest scope: **a behavioural readout of "
-      "inhibitory gain in a defined sensorimotor circuit, sampled within 24 hours of injury, carries "
-      "information about which animals are undergoing epileptogenesis.** It does not identify the "
-      "cellular lesion, and it is one experiment in one species at one age.")
+    A("The signal lies in the **pre-injury** habituation constant together with blast dose, not in "
+      "the acute change in habituation that this study set out to test. Injury does perturb the "
+      "circuit strongly and in dose-dependent opposite directions, but that group-level effect does "
+      "not carry individual-level predictive information here.")
+    A("")
+    A("Two assays that share no instrumentation with the behavioural pipeline agree that `converted` "
+      "denotes a genuinely hyperexcitable state: converter pools carry "
+      f"{100*(gm-1):.1f}% more c-fos transcript than matched non-converter pools, with injured "
+      "non-converters indistinguishable from sham, and larvae that seize under PTZ are "
+      f"{float(orr['value']):.0f} times more likely to have converted. The outcome variable is real. "
+      "Whether it can be predicted from the acute injury response remains open, and on this evidence "
+      "the answer is no.")
     A("")
     A("## Background literature")
     A("")
-    A("The neurobiological claims above rest on the following. This is a background reading list, not "
-      "a citation of results generated here.")
+    A("Reading behind the neurobiological claims above. These support the framing; they are not "
+      "citations of results generated here.")
     A("")
-    A("1. Annegers JF, Hauser WA, Coan SP, Rocca WA (1998). A population-based study of seizures "
-      "after traumatic brain injuries. *New England Journal of Medicine* 338:20–24.")
-    A("2. Baraban SC, Taylor MR, Castro PA, Baier H (2005). Pentylenetetrazole induced changes in "
-      "zebrafish behavior, neural activity and c-fos expression. *Neuroscience* 131:759–768.")
-    A("3. Burgess HA, Granato M (2007). Sensorimotor gating in larval zebrafish. *Journal of "
-      "Neuroscience* 27:4984–4994.")
-    A("4. Hunt RF, Boychuk JA, Smith BN (2013). Neural circuit mechanisms of post-traumatic epilepsy. "
-      "*Frontiers in Cellular Neuroscience* 7:89.")
-    A("5. Livak KJ, Schmittgen TD (2001). Analysis of relative gene expression data using real-time "
-      "quantitative PCR and the 2^−ΔΔCт method. *Methods* 25:402–408.")
-    A("6. Marsden KC, Granato M (2015). In vivo Ca²⁺ imaging reveals that decreased dendritic "
-      "excitability drives startle habituation. *Cell Reports* 13:1733–1740.")
-    A("7. Peduzzi P, Concato J, Kemper E, Holford TR, Feinstein AR (1996). A simulation study of the "
-      "number of events per variable in logistic regression analysis. *Journal of Clinical "
-      "Epidemiology* 49:1373–1379.")
-    A("8. Sheng M, Greenberg ME (1990). The regulation and function of c-fos and other immediate "
-      "early genes in the nervous system. *Neuron* 4:477–485.")
-    A("9. Sloviter RS (1991). Permanently altered hippocampal structure, excitability, and inhibition "
-      "after experimental status epilepticus in the rat: the 'dormant basket cell' hypothesis. "
-      "*Hippocampus* 1:41–66.")
-    A("10. Tang R, Dodd A, Lai D, McNabb WC, Love DR (2007). Validation of zebrafish (*Danio rerio*) "
-      "reference genes for quantitative real-time RT-PCR normalization. *Acta Biochimica et "
-      "Biophysica Sinica* 39:384–390.")
-    A("11. Varma S, Simon R (2006). Bias in error estimation when using cross-validation for model "
-      "selection. *BMC Bioinformatics* 7:91.")
-    A("12. Wolman MA, Jain RA, Liss L, Granato M (2011). Chemical modulation of memory formation in "
-      "larval zebrafish. *PNAS* 108:15468–15473.")
+    for i, ref in enumerate([
+        "Annegers JF, Hauser WA, Coan SP, Rocca WA (1998). A population-based study of seizures "
+        "after traumatic brain injuries. *New England Journal of Medicine* 338:20-24.",
+        "Baraban SC, Taylor MR, Castro PA, Baier H (2005). Pentylenetetrazole induced changes in "
+        "zebrafish behavior, neural activity and c-fos expression. *Neuroscience* 131:759-768.",
+        "Burgess HA, Granato M (2007). Sensorimotor gating in larval zebrafish. *Journal of "
+        "Neuroscience* 27:4984-4994.",
+        "Hunt RF, Boychuk JA, Smith BN (2013). Neural circuit mechanisms of post-traumatic epilepsy. "
+        "*Frontiers in Cellular Neuroscience* 7:89.",
+        "Livak KJ, Schmittgen TD (2001). Analysis of relative gene expression data using real-time "
+        "quantitative PCR and the 2^-ΔΔCт method. *Methods* 25:402-408.",
+        "Marsden KC, Granato M (2015). In vivo Ca²⁺ imaging reveals that decreased dendritic "
+        "excitability drives startle habituation. *Cell Reports* 13:1733-1740.",
+        "Peduzzi P, Concato J, Kemper E, Holford TR, Feinstein AR (1996). A simulation study of the "
+        "number of events per variable in logistic regression analysis. *Journal of Clinical "
+        "Epidemiology* 49:1373-1379.",
+        "Sheng M, Greenberg ME (1990). The regulation and function of c-fos and other immediate "
+        "early genes in the nervous system. *Neuron* 4:477-485.",
+        "Sloviter RS (1991). Permanently altered hippocampal structure, excitability, and inhibition "
+        "after experimental status epilepticus in the rat: the 'dormant basket cell' hypothesis. "
+        "*Hippocampus* 1:41-66.",
+        "Tang R, Dodd A, Lai D, McNabb WC, Love DR (2007). Validation of zebrafish (*Danio rerio*) "
+        "reference genes for quantitative real-time RT-PCR normalization. *Acta Biochimica et "
+        "Biophysica Sinica* 39:384-390.",
+        "Varma S, Simon R (2006). Bias in error estimation when using cross-validation for model "
+        "selection. *BMC Bioinformatics* 7:91.",
+        "Wolman MA, Jain RA, Liss L, Granato M (2011). Chemical modulation of memory formation in "
+        "larval zebrafish. *PNAS* 108:15468-15473.",
+    ], 1):
+        A(f"{i}. {ref}")
     A("")
     A("## Reproducing")
     A("")
@@ -686,7 +728,7 @@ def write(ctx: dict) -> str:
     A("python run_all.py")
     A("```")
     A("")
-    A(f"Seed `{config.SEED}`. Outputs: `results/figures/*.png` (300 dpi), "
+    A(f"Seed `{config.SEED}`. Outputs: `results/figures/*.png` at 300 dpi, "
       "`results/all_statistics.csv`, `results/tables/*.csv`, and this file.")
     A("")
 

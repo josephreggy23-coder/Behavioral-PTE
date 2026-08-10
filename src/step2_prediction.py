@@ -140,6 +140,55 @@ def run(model_df: pd.DataFrame, *, n_perm: int = config.N_PERMUTATIONS) -> dict:
 
     full = results["e_full"]
 
+    # ------------------------------------------- honest model selection
+    # The table above invites a mistake: pick the winning row and quote its AUC.
+    # That AUC is optimistic, because the winner was chosen using the same folds
+    # it is scored on. Treating "which predictors" as a hyper-parameter tuned on
+    # the inner folds gives the honest performance of the selection procedure.
+    sb.banner("STEP 2c2 -- model selection performed INSIDE the cross-validation")
+    candidates = {k: v["features"] for k, v in features.MODEL_SPECS.items()}
+    sel = modeling.nested_cv_select_model(X, y, groups, candidates, seed=config.SEED)
+    sel_lo, sel_hi = modeling.bootstrap_auc_ci(y, sel["oof"], groups)
+    best_row = comparison.loc[comparison["mean_fold_auc"].idxmax()]
+
+    sb.record("2", "model_selection", "mean_fold_auc", sel["mean_fold_auc"], n=len(y),
+              test="nested CV with the feature set chosen on inner folds only",
+              notes="honest estimate for 'best model we could pick'; "
+                    + ", ".join(f"{r.held_out}->{r.selected_model}"
+                                for r in sel["folds"].itertuples()))
+    sb.record("2", "model_selection", "sd_fold_auc", sel["sd_fold_auc"], n=len(y))
+    sb.record("2", "model_selection", "pooled_oof_auc", sel["pooled_auc"],
+              ci_low=sel_lo, ci_high=sel_hi, n=len(y))
+    sb.record("2", "model_selection", "brier", sel["brier"], n=len(y))
+    sb.record("2", "model_selection", "naive_best_row_mean_fold_auc",
+              float(best_row["mean_fold_auc"]), n=len(y),
+              notes=f"{best_row['label']}; OPTIMISTIC, chosen by looking at the reported folds")
+    sb.record("2", "model_selection", "selection_optimism",
+              float(best_row["mean_fold_auc"]) - sel["mean_fold_auc"], n=len(y),
+              notes="best-row AUC minus honestly-selected AUC")
+
+    print(f"  candidate sets: {', '.join(candidates)}")
+    for r in sel["folds"].itertuples():
+        print(f"    held-out {r.held_out}: selected {r.selected_model} "
+              f"(C={r.selected_C:g}, inner AUC {r.inner_auc:.3f}) -> outer AUC {r.auc:.3f}")
+    print(f"  honestly-selected model: mean fold AUC {sel['mean_fold_auc']:.3f} "
+          f"(SD {sel['sd_fold_auc']:.3f}), pooled OOF AUC {sel['pooled_auc']:.3f} "
+          f"[{sel_lo:.3f}, {sel_hi:.3f}]")
+    print(f"  best row of the table ({best_row['label']}) reads {best_row['mean_fold_auc']:.3f}; "
+          f"optimism from picking it by eye = "
+          f"{float(best_row['mean_fold_auc']) - sel['mean_fold_auc']:+.3f} AUC")
+    sel["folds"].to_csv(config.TABLES / "step2_model_selection_folds.csv", index=False)
+
+    sel_cm = modeling.confusion_at(y, sel["oof"], 0.5)
+    for k in ["accuracy", "balanced_accuracy", "sensitivity", "specificity", "ppv", "npv"]:
+        sb.record("2", "model_selection_confusion", k, sel_cm[k], n=len(y),
+                  notes="out-of-fold, threshold 0.50, feature set selected inside each fold")
+    sb.record("2", "model_selection_confusion", "tn_fp_fn_tp",
+              f"{sel_cm['tn']};{sel_cm['fp']};{sel_cm['fn']};{sel_cm['tp']}", n=len(y))
+    print(f"  selected-model accuracy {sel_cm['accuracy']:.3f} "
+          f"(balanced {sel_cm['balanced_accuracy']:.3f}, sens {sel_cm['sensitivity']:.3f}, "
+          f"spec {sel_cm['specificity']:.3f})")
+
     # ------------------------------------------------------- leakage check
     sb.banner("STEP 2d -- leakage quantification: random split vs clutch split")
     naive = modeling.nested_cv(X, y, groups, features.MODEL_SPECS["e_full"]["features"],
@@ -187,6 +236,21 @@ def run(model_df: pd.DataFrame, *, n_perm: int = config.N_PERMUTATIONS) -> dict:
           f"p = {perm['p_mean_fold']:.4f})")
     sb.check("null centred near 0.5 (permutation machinery is unbiased)",
              abs(perm["null_mean"] - 0.5) < 0.05, f"null mean = {perm['null_mean']:.3f}")
+
+    # the same test for the selection procedure: the whole selection is permuted
+    sel_perm = modeling.permutation_test(
+        X, y, groups, candidates, sel["pooled_auc"], sel["mean_fold_auc"],
+        n_perm=n_perm, seed=config.SEED,
+    )
+    sb.record("2", "permutation_selected", "observed_pooled_auc", sel["pooled_auc"], n=len(y))
+    sb.record("2", "permutation_selected", "null_mean_auc", sel_perm["null_mean"], n=n_perm)
+    sb.record("2", "permutation_selected", "null_95th_percentile", sel_perm["null_q95"], n=n_perm)
+    sb.record("2", "permutation_selected", "p_value_pooled_auc", sel_perm["p_pooled"], n=len(y),
+              test=f"permutation test on the full selection procedure, {n_perm} shuffles",
+              statistic=sel["pooled_auc"], p_value=sel_perm["p_pooled"],
+              notes="feature-set selection is re-run inside every permutation")
+    print(f"  selection procedure: observed {sel['pooled_auc']:.3f}, null mean "
+          f"{sel_perm['null_mean']:.3f}, p = {sel_perm['p_pooled']:.4f}")
 
     # --------------------------------------------- final model & diagnostics
     sb.banner("STEP 2f -- full model: coefficients, confusion matrix, calibration")
@@ -272,4 +336,8 @@ def run(model_df: pd.DataFrame, *, n_perm: int = config.N_PERMUTATIONS) -> dict:
         "cm": cm,
         "best_C": best_C,
         "inflation": inflation,
+        "selection": sel,
+        "selection_cm": sel_cm,
+        "selection_ci": (sel_lo, sel_hi),
+        "selection_perm": sel_perm,
     }
