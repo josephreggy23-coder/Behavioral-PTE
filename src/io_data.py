@@ -1,8 +1,9 @@
 """Loading and light validation of the workbook.
 
-The workbook shipped for this experiment is ``realdata.xlsx``.  Sheet names are
-as specified in the protocol; one column is named ``delta_delta_ct`` rather than
-``delta_ddct`` and is aliased here so downstream code can use either.
+The workbook shipped for this experiment is
+``data/raw/behavioral_pte_source.xlsx``. Sheet names are as specified in the
+protocol; one column is named ``delta_delta_ct`` rather than ``delta_ddct`` and
+is aliased here so downstream code can use either.
 """
 from __future__ import annotations
 
@@ -28,7 +29,8 @@ def _book() -> dict[str, pd.DataFrame]:
     if not config.DATA_XLSX.exists():
         raise FileNotFoundError(
             f"Dataset not found at {config.DATA_XLSX}. "
-            "Place the zebrafish TBI workbook there (see README)."
+            "Restore the source workbook as data/raw/behavioral_pte_source.xlsx "
+            "relative to the repository root."
         )
     xl = pd.ExcelFile(config.DATA_XLSX)
     missing = [s for s in SHEETS if s not in xl.sheet_names]

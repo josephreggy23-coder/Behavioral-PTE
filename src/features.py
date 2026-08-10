@@ -26,25 +26,35 @@ MODEL_SPECS: dict[str, dict] = {
     "a_locomotion_only": {
         "label": "(a) baseline_locomotion only",
         "features": ["baseline_locomotion_pre"],
-        "question": "Is it just sickness?",
+        "question": "How much does baseline locomotion predict?",
     },
     "b_dose_only": {
         "label": "(b) dose only",
         "features": ["dose"],
-        "question": "Is it just injury severity?",
+        "question": "How much does dose alone predict?",
     },
     "c_dose_pretau": {
         "label": "(c) dose + pre_tau",
         "features": ["dose", "pre_tau"],
-        "question": "Is it a pre-existing trait?",
+        "question": "What does baseline tau add to dose?",
     },
     "d_dose_dtau": {
         "label": "(d) dose + z_dtau",
         "features": ["dose", "dtau_0.5", "dtau_24"],
-        "question": "Is it the injury response?",
+        "question": "What do post-injury tau changes add to dose?",
+    },
+    "e_dtau_only": {
+        "label": "(e) delta_tau only (dose-blind)",
+        "features": ["dtau_0.5", "dtau_24"],
+        "question": "Does the injury response work without dose context?",
+    },
+    "f_behavior_no_dose": {
+        "label": "(f) pre_tau + delta_tau (dose-blind)",
+        "features": ["pre_tau", "dtau_0.5", "dtau_24"],
+        "question": "Do all behavioral features work without dose?",
     },
     "e_full": {
-        "label": "(e) full 4-predictor model",
+        "label": "(g) full 4-predictor model",
         "features": ["dose", "pre_tau", "dtau_0.5", "dtau_24"],
         "question": "Full model",
     },
@@ -118,11 +128,12 @@ def report_features(tbl: pd.DataFrame, model_df: pd.DataFrame, dropped: pd.DataF
     sb.record("2", "design_matrix", "n_events", ev, n=n)
     sb.record("2", "design_matrix", "event_rate", ev / n, n=n)
     sb.record("2", "design_matrix", "events_per_variable", epv, n=n,
-              notes="4 predictors; >=10 is the conventional target, >=9 the accepted minimum")
+              notes="4 predictors; 10 is a common historical heuristic, and observed EPV is 9")
     sb.record("2", "design_matrix", "n_excluded_incomplete", len(dropped),
               notes="missing a 0.5 h or 24 h session (attrition)")
 
-    sb.check("events per variable >= 9", epv >= 9, f"EPV = {epv:.1f}")
+    sb.check("events per variable meets the prespecified >=9 diagnostic", epv >= 9,
+             f"EPV = {epv:.1f}; still a small modeling set")
     sb.check("outcome not degenerate (10-90% events)", 0.10 < ev / n < 0.90,
              f"event rate {ev/n:.2f}")
 
@@ -138,6 +149,7 @@ def report_features(tbl: pd.DataFrame, model_df: pd.DataFrame, dropped: pd.DataF
 
     # collinearity among the four predictors (pre-scaling, raw deltas)
     corr = model_df[PREDICTORS].corr()
+    corr.index.name = "predictor"
     corr.to_csv(config.TABLES / "step2_predictor_correlations.csv")
     worst = float(np.abs(corr.to_numpy()[np.triu_indices(len(PREDICTORS), 1)]).max())
     sb.record("2", "design_matrix", "max_abs_predictor_correlation", worst, n=n)

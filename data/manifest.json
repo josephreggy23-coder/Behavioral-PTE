@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "manifest_created": "2026-08-09",
+  "canonical_input": {
+    "path": "data/raw/behavioral_pte_source.xlsx",
+    "format": "Microsoft Excel Open XML Workbook",
+    "size_bytes": 914668,
+    "sha256": "8c0b1d903ab058129653ca722683a4d66a99e1937a323150df209c545828599d",
+    "contains_formulas": false,
+    "missing_cells_in_used_tables": 0,
+    "duplicate_rows": 0
+  },
+  "provenance": {
+    "status": "unverified",
+    "source_record": null,
+    "acquisition_protocol": null,
+    "instrument_exports": null,
+    "outcome_labeling_protocol": null,
+    "approval_identifiers": null,
+    "note": "The repository alone does not authenticate the experimental origin of the workbook. Add primary records without committing signed forms or private information."
+  },
+  "sheets": [
+    {
+      "name": "habituation_trials",
+      "rows": 19500,
+      "primary_key": ["fish_id", "timepoint_h", "trial"],
+      "columns": ["fish_id", "group", "clutch", "well", "timepoint_h", "trial", "block", "distance_mm", "responded", "baseline_locomotion"]
+    },
+    {
+      "name": "fish_features",
+      "rows": 650,
+      "primary_key": ["fish_id", "timepoint_h"],
+      "columns": ["fish_id", "group", "clutch", "timepoint_h", "amplitude", "decay_constant", "offset", "baseline_locomotion", "resp_prob_block1", "resp_prob_block6", "mean_distance"]
+    },
+    {
+      "name": "outcomes_6dpf",
+      "rows": 133,
+      "primary_key": ["fish_id"],
+      "columns": ["fish_id", "group", "clutch", "converted", "burst_events_per_hour_6dpf", "mean_burst_duration_s"]
+    },
+    {
+      "name": "cfos_cohort_features",
+      "rows": 249,
+      "primary_key": ["fish_id", "timepoint_h"],
+      "columns": ["fish_id", "group", "clutch", "timepoint_h", "amplitude", "decay_constant", "offset", "baseline_locomotion", "resp_prob_block1", "resp_prob_block6", "mean_distance"]
+    },
+    {
+      "name": "cfos_pools",
+      "rows": 18,
+      "primary_key": ["pool_id"],
+      "columns": ["pool_id", "group", "clutch", "risk_pool", "n_larvae_in_pool", "target", "reference_gene", "delta_delta_ct", "cfos_fold_change", "pooled_fish_ids"]
+    },
+    {
+      "name": "ptz_challenge",
+      "rows": 34,
+      "primary_key": ["fish_id"],
+      "columns": ["fish_id", "group", "clutch", "ptz_mM", "latency_s", "seized", "baseline_locomotion"]
+    },
+    {
+      "name": "session_log",
+      "rows": 15,
+      "primary_key": ["session_id"],
+      "columns": ["session_id", "clutch", "timepoint_h", "n_fish_recorded", "setup_min", "acquisition_min", "analysis_min", "operator_hands_on_min", "consumables_cost_usd", "fish_lost_this_session"]
+    }
+  ]
+}

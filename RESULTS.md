@@ -1,7 +1,10 @@
-# Results — larval zebrafish blast TBI and post-traumatic epileptogenesis
+# Results — startle-habituation kinetics and a supplied post-injury behavioral label
 
-Generated 2026-08-09 15:27 from `realdata.xlsx`  
-**Random seed: `20260809`** (numpy, scikit-learn, permutation and bootstrap draws). Rerunning `python run_all.py` reproduces every number below.
+**Source:** `data/raw/behavioral_pte_source.xlsx`
+
+**Random seed: `20260809`** (numpy, scikit-learn, permutation and bootstrap draws). With the recorded input and tested dependency versions, rerunning `python run_all.py` reproduces the analysis numerically.
+
+> **Interpretation boundary.** These analyses use the supplied workbook. The repository does not include source videos, electrographic recordings, raw qPCR Ct data, animal-approval records, or a reproducible protocol for deriving the `converted` and `risk_pool` labels. The results therefore describe internal associations with supplied labels; they do not establish epilepsy or validate a biomarker.
 
 Every statistic quoted here is also in [`results/all_statistics.csv`](results/all_statistics.csv) with its test, statistic, df, p-value, effect size and CI.
 
@@ -12,16 +15,16 @@ Every statistic quoted here is also in [`results/all_statistics.csv`](results/al
 | # | Finding | Test | Effect size | p |
 |---|---------|------|-------------|---|
 | 1 | The nonlinear refit reproduces the supplied `decay_constant` | Pearson correlation, 650 sessions | r = 1.0000 | < 0.0001 |
-| 2 | Groups are indistinguishable at the pre-injury baseline | one-way ANOVA on baseline τ | η² = 0.0083 | = 0.5825 |
+| 2 | No baseline group difference was detected | one-way ANOVA on baseline τ | η² = 0.0083 | = 0.5825 |
 | 3 | Low and high dose move τ in **opposite** directions after blast | Welch t, Δτ at 0.5 h | d = 2.19 | < 0.0001 |
-| 4 | The 4-predictor model predicts conversion above chance | nested CV + 1000 permutations | AUC = 0.833 | = 0.0010 |
-| 5 | c-fos is higher in high-risk than low-risk pools | paired t, 9 matched pairs | dz = 0.79 | = 0.0449 |
-| 6 | Sham pools show no high-vs-low difference (negative control) | paired t, 3 pairs | dz = 0.46 | = 0.5124 |
-| 7 | PTZ seizure proportion differs by group — **underpowered** | χ² | V = 0.381 | = 0.0849 |
+| 4 | The 4-predictor model distinguishes the supplied `converted` label across held-out clutches | nested CV + 1000 permutations | AUC = 0.833 | = 0.0010 |
+| 5 | Supplied high-risk pools have higher c-fos in the nominal all-pair comparison | paired t, 9 matched pairs | dz = 0.79 | = 0.0449 |
+| 6 | No high-vs-low difference was detected in the three sham pairs | paired t, 3 pairs | dz = 0.46 | = 0.5124 |
+| 7 | The PTZ group comparison did not reach p < 0.05 and is underpowered | χ² | V = 0.381 | = 0.0849 |
 
 ---
 
-## Step 1 — Rebuilding the outcome variable
+## Step 1 — Re-estimating the habituation feature
 
 Per fish per session, `distance_mm(k) = A·exp(−(k−1)/τ) + C` was fitted to all 30 trials by nonlinear least squares (`scipy.optimize.curve_fit`, bounded, four starting points per session, best SSE retained).
 
@@ -39,30 +42,32 @@ Figures: `fig01_curvefit_examples.png`, `fig02_tau_agreement.png`.
 
 ## Step 2 — Prediction model (primary result)
 
-**Analysis set.** Injured fish only (sham dropped), one row per fish, complete on all four predictors and the outcome: **n = 81, 36 converters (44.4%)**. 7 injured fish were excluded for a missing 0.5 h or 24 h session (attrition). Events per variable = **9.0** with four predictors — at the accepted minimum, which is why the predictor set was not expanded.
+**Analysis set.** Injured fish only (sham dropped), one row per fish, complete on all four predictors and the outcome: **n = 81, 36 converters (44.4%)**. 7 injured fish were excluded for a missing 0.5 h or 24 h session (attrition). Events per variable = **9.0** with four predictors. This is a small modeling set, so the predictor set was not expanded.
 
 **Predictors.** `dose` (high_impact = 1); `pre_tau` (τ at t = −1); `z_dtau_0.5` and `z_dtau_24` (τ@0.5 − τ@−1 and τ@24 − τ@−1, z-scored **within dose group**).
 
-**Model.** L2-penalised logistic regression inside a `StandardScaler` pipeline. No ensembles: at n = 81 with 36 events, a random forest or boosted model has enough capacity to memorise the sample, and its coefficients cannot be sign-checked against the biology.
+**Model.** L2-penalised logistic regression inside a `StandardScaler` pipeline. A fixed, regularised linear classifier limits flexibility at n = 81 and yields coefficients that can be inspected as associations.
 
-**Two fixes, applied together, for two different problems:**
+**Two safeguards are applied together:**
 
-1. `GroupKFold` on clutch for the outer split (leave-one-clutch-out). Clutches were run on separate days; a random split puts siblings on both sides of the partition.
+1. `GroupKFold` on clutch for the outer split (leave-one-clutch-out). A random split would mix clutch-associated observations across training and test partitions.
 2. **Nested** CV for the penalty strength C — chosen inside each outer training set only, never on the folds reported below.
 
 The within-dose z-scoring is itself a data-dependent transform, so it is implemented as a pipeline step fitted on training folds only (`modeling.WithinDoseZScorer`) rather than applied to the whole dataset up front. A sensitivity run with whole-dataset z-scoring is reported below.
 
 ### Nested comparison table
 
-Same model class, same CV scheme, different inputs. This is the scientific argument.
+The model class and validation scheme stay fixed while the input features change.
 
-| Model | Question | Mean fold AUC | SD | Fold range | Pooled OOF AUC [95% CI] | Brier |
+| Model | Question | Mean fold AUC | SD | Fold range | Pooled OOF AUC [conditional 95% interval] | Brier |
 |---|---|---|---|---|---|---|
-| (a) baseline_locomotion only | Is it just sickness? | **0.416** | 0.090 | 0.323–0.503 | 0.388 [0.265, 0.517] | 0.252 |
-| (b) dose only | Is it just injury severity? | **0.440** | 0.079 | 0.354–0.509 | 0.381 [0.256, 0.502] | 0.251 |
-| (c) dose + pre_tau | Is it a pre-existing trait? | **0.677** | 0.132 | 0.588–0.830 | 0.607 [0.484, 0.725] | 0.248 |
-| (d) dose + z_dtau | Is it the injury response? | **0.621** | 0.043 | 0.575–0.659 | 0.609 [0.484, 0.727] | 0.244 |
-| (e) full 4-predictor model | Full model | **0.849** | 0.080 | 0.758–0.909 | 0.833 [0.736, 0.916] | 0.173 |
+| (a) baseline_locomotion only | How much does baseline locomotion predict? | **0.416** | 0.090 | 0.323–0.503 | 0.388 [0.265, 0.517] | 0.252 |
+| (b) dose only | How much does dose alone predict? | **0.440** | 0.079 | 0.354–0.509 | 0.381 [0.256, 0.502] | 0.251 |
+| (c) dose + pre_tau | What does baseline tau add to dose? | **0.677** | 0.132 | 0.588–0.830 | 0.607 [0.484, 0.725] | 0.248 |
+| (d) dose + z_dtau | What do post-injury tau changes add to dose? | **0.621** | 0.043 | 0.575–0.659 | 0.609 [0.484, 0.727] | 0.244 |
+| (e) delta_tau only (dose-blind) | Does the injury response work without dose context? | **0.591** | 0.072 | 0.516–0.659 | 0.544 [0.417, 0.664] | 0.252 |
+| (f) pre_tau + delta_tau (dose-blind) | Do all behavioral features work without dose? | **0.810** | 0.097 | 0.699–0.881 | 0.801 [0.703, 0.886] | 0.181 |
+| (g) full 4-predictor model | Full model | **0.849** | 0.080 | 0.758–0.909 | 0.833 [0.736, 0.916] | 0.173 |
 
 Per-fold AUC (held-out clutch), with the C selected inside each fold:
 
@@ -72,21 +77,25 @@ Per-fold AUC (held-out clutch), with the C selected inside each fold:
 | (b) dose only | 0.458 (C=0.01) | 0.509 (C=0.01) | 0.354 (C=0.01) |
 | (c) dose + pre_tau | 0.588 (C=10) | 0.830 (C=0.01) | 0.615 (C=0.01) |
 | (d) dose + z_dtau | 0.575 (C=100) | 0.659 (C=0.01) | 0.630 (C=0.01) |
-| (e) full 4-predictor model | 0.758 (C=1) | 0.909 (C=10) | 0.880 (C=0.03) |
+| (e) delta_tau only (dose-blind) | 0.516 (C=100) | 0.659 (C=0.01) | 0.599 (C=0.01) |
+| (f) pre_tau + delta_tau (dose-blind) | 0.699 (C=10) | 0.881 (C=100) | 0.849 (C=100) |
+| (g) full 4-predictor model | 0.758 (C=1) | 0.909 (C=10) | 0.880 (C=0.03) |
 
 Reading it:
 
-- **(a) baseline_locomotion alone: 0.416.** At or below chance out of fold. Conversion is not a readout of how sick or sluggish the fish is.
-- **(b) dose alone: 0.440.** Also at chance across clutches. The dose effect is not stable between them: in clutch_C high-dose fish convert at 71% versus 43% for low dose, but in clutch_A the gap runs the other way (31% vs 38%). A model trained on two clutches therefore does not transfer to the third. Injury severity by itself is not the predictor — it is the moderator that keeps the two Δτ signals from cancelling.
-- **(c) dose + pre_tau: 0.677.** A pre-existing trait carries real information — but note the fold spread (0.588–0.830) is the widest in the table.
-- **(d) dose + z_dtau: 0.621.** The acute injury response carries a comparable amount, and much more consistently across folds (SD 0.043).
-- **(e) the full model: 0.849.** The jump of +0.172 AUC over the better of (c) and (d) is the result. Neither the trait nor the response alone gets there; **they carry complementary information**. The full model also beats every ablation in every one of the three clutch folds.
+- **(a) baseline_locomotion alone: 0.416.** This single activity measure performs at or below chance out of fold. It does not, by itself, exclude other illness, motor, or severity explanations.
+- **(b) dose alone: 0.440.** Also at chance across clutches. The dose effect is not stable between them: in clutch_C high-dose fish convert at 71% versus 43% for low dose, but in clutch_A the gap runs the other way (31% vs 38%). A model trained on two clutches therefore does not transfer to the third. In this dataset, dose alone is a poor cross-clutch classifier; whether it adds information beyond the behavioral trajectory is tested directly by models (f) and (g).
+- **(c) dose + pre_tau: 0.677.** The baseline-kinetics model contains predictive signal — but note the fold spread (0.588–0.830) is the widest in the table.
+- **(d) dose + z_dtau: 0.621.** The post-injury change-score model carries a comparable amount of predictive signal, and does so much more consistently across folds (SD 0.043).
+- **(e) delta_tau only (dose-blind): 0.591.** This ablation omits dose both as a predictor and from preprocessing, testing whether the two raw change scores transfer without injury-severity context.
+- **(f) pre_tau + delta_tau (dose-blind): 0.810.** This is the direct dose-necessity ablation: it retains every behavioral feature while omitting dose from both the inputs and preprocessing.
+- **(g) the full model: 0.849.** Its mean-fold AUC is +0.172 above the better of (c) and (d), consistent with complementary predictive information from baseline and post-injury features. Adding dose to the complete behavioral model changes mean-fold AUC by +0.039; the (f)-versus-(g) comparison, not the dose-only model, is the test of dose's incremental value. The full model also beats every ablation in every one of the three clutch folds.
 
-The honest reading of (c) versus (d) is that this design cannot cleanly apportion credit between a pre-existing trait and the injury response — with 3 clutches and 36 events their individual AUCs (0.677 vs 0.621) are well inside each other's fold spread. What the table does establish is that both are needed and that neither sickness nor dose substitutes for them.
+The honest reading of (c) versus (d) is that this design cannot cleanly apportion credit between a pre-existing trait and the injury response — with 3 clutches and 36 events their individual AUCs (0.677 vs 0.621) are well inside each other's fold spread. What the table supports is complementary information from baseline and post-injury behavior; it does not establish that explicit dose encoding is necessary.
 
 ### Permutation test
 
-Labels were shuffled **within clutch** (preserving each clutch's conversion rate — the conservative null) and the *entire* nested CV rerun 1000 times.
+Labels were shuffled **within clutch** (preserving each clutch's conversion rate) and the *entire* nested CV rerun 1000 times.
 
 - Null distribution: mean AUC 0.469, SD 0.082, 95th percentile 0.601.
 - Observed pooled out-of-fold AUC **0.833** sits at the **100.0th percentile** of the null.
@@ -95,18 +104,18 @@ Labels were shuffled **within clutch** (preserving each clutch's conversion rate
 
 Figure: `fig04_permutation_null.png`.
 
-### Leakage quantification
+### Random-split comparison
 
 | Split | Mean fold AUC | Pooled OOF AUC |
 |---|---|---|
-| 5-fold **random** (leaky, reported only for comparison) | 0.865 | 0.856 |
-| Leave-one-clutch-out (**the honest estimate**) | 0.849 | 0.833 |
+| 5-fold **random** (ignores clutch; comparison only) | 0.865 | 0.856 |
+| Leave-one-clutch-out (**reported estimate**) | 0.849 | 0.833 |
 
-Ignoring clutch inflates the mean fold AUC by **+0.016**. Any AUC from a random split on this design should be discounted by roughly that much.
+In this dataset, the random split's mean fold AUC is **+0.016** above the clutch-held-out estimate. This single comparison does not define a general correction factor.
 
 ### Full model coefficients
 
-Refitted on all 81 fish with C = 0.03 (chosen by clutch-held-out CV on the full set — this refit is for interpretation only and contributes nothing to the AUCs above). Coefficients are on the standardised scale; CIs are clutch-clustered bootstrap percentiles (2000 resamples).
+Refitted on all 81 fish with C = 0.03 (chosen by clutch-held-out CV on the full set — this refit is for interpretation only and contributes nothing to the AUCs above). Coefficients are on the standardised scale; CIs are percentile intervals from a within-clutch stratified bootstrap conditional on the observed clutches (2000 resamples).
 
 | Predictor | β (per SD) | 95% CI | OR per SD | OR 95% CI |
 |---|---|---|---|---|
@@ -119,14 +128,14 @@ Intercept -0.083. \* = bootstrap CI excludes zero.
 
 An unpenalised `statsmodels` Logit fit is stored in `results/tables/step2_unpenalised_logit.csv` for Wald p-values; it is reference material only, since the reported model is penalised.
 
-#### What the coefficients mean neurobiologically
+#### How to read the coefficients
 
-τ is the number of trials required for the acoustic startle response to decay to its floor. Startle habituation in larval zebrafish is not fatigue of the Mauthner cell, the hindbrain command neuron for the C-start escape — it is produced by progressive **feedforward inhibition onto the M-cell's lateral dendrite**, which reduces dendritic excitability with repeated stimulation (Marsden & Granato, 2015). A larger τ therefore means inhibition is accumulating more slowly, i.e. **reduced inhibitory gain in a defined sensorimotor circuit**. That is the same quantity — the excitation/inhibition set point — whose collapse drives epileptogenesis after traumatic brain injury.
+τ is the fitted number of trials over which the acoustic startle response approaches its floor. Prior work links larval-zebrafish startle habituation to changes in Mauthner-cell dendritic excitability (Marsden & Granato, 2015), which motivates τ as a circuit-sensitive behavioral feature. This experiment does not directly measure inhibition, excitation, or the Mauthner circuit, so the coefficients should be interpreted as predictive associations.
 
-- **`pre_tau` (β = +0.331, OR 1.39 per SD).** Fish that habituate more slowly *before* any injury are more likely to convert. This is a predisposition term: baseline inhibitory tone varies between individuals, and a fish that starts nearer the seizure threshold has less reserve to lose. It is the animal-model analogue of the pre-injury risk factors that modify post-traumatic epilepsy risk in humans, and is consistent with a two-hit framing — susceptibility plus insult.
-- **`z_dtau_0.5` (β = +0.168, OR 1.18 per SD).** The acute (30 min) shift in inhibitory gain, measured against the fish's own pre-injury baseline and standardised within dose. This is the window of the immediate post-traumatic glutamate surge and acute interneuron dysfunction; a larger dose-appropriate deviation predicts conversion.
-- **`z_dtau_24` (β = +0.257, OR 1.29 per SD).** The 24 h shift indexes whether the circuit has renormalised. Failure to return toward baseline by 24 h is the behavioural signature of entering the **latent period** — the interval during which the network is being remodelled but spontaneous seizures have not yet appeared. That both the 0.5 h and 24 h terms carry independent weight says the trajectory matters, not just the peak.
-- **`dose` (β = +0.075, CI [-0.081, +0.228]).** The one coefficient whose CI includes zero, and that is the expected result. Dose is in the model as a **moderator, not a main effect**: it tells the model which direction a pathological Δτ points in (see Step 4). Remove it and the two dose groups' Δτ distributions overlap in a way that cancels the signal — which is exactly what the ablation table shows.
+- **`pre_tau` (β = +0.331, OR 1.39 per SD).** Within the fitted model, slower pre-injury habituation is associated with the supplied later label. The design cannot determine whether this is causal susceptibility, confounding, or sampling variation.
+- **`z_dtau_0.5` (β = +0.168, OR 1.18 per SD).** This is the 30-minute change from the fish's own baseline, centered and scaled within dose. Its coefficient estimates an association conditional on the other predictors; it is not a direct measure of inhibitory gain.
+- **`z_dtau_24` (β = +0.257, OR 1.29 per SD).** This is the analogous 24-hour change score. Its inclusion allows the classifier to use the two-timepoint trajectory, but the study does not establish that this trajectory represents a latent epileptogenic period.
+- **`dose` (β = +0.075, CI [-0.081, +0.228]).** This coefficient estimates dose's conditional contribution after the three behavioral terms. Its interval and the direct comparison of models (f) and (g) should be used together; the strong dose-blind model means dose cannot be described as necessary for prediction. Because the model contains no dose-by-change interaction, it is not a formal moderation analysis.
 
 ### Classification and calibration (out-of-fold)
 
@@ -139,7 +148,7 @@ An unpenalised `statsmodels` Logit fit is stored in `results/tables/step2_unpena
 
 At the Youden-optimal operating point (threshold 0.472) accuracy is 81.5% (balanced 81.7%, sensitivity 83.3%, specificity 80.0%). That threshold was chosen on these same out-of-fold predictions, so it is mildly optimistic and is quoted only to show the achievable operating range. **The 0.50 figure is the one to cite**, and AUC — which is threshold-free — remains the primary metric.
 
-Calibration matters more than accuracy for a screening biomarker: a model that ranks fish correctly but reports 0.9 for a fish that converts 60% of the time would misallocate any intervention trial built on it. The out-of-fold calibration curve (`fig05_confusion_calibration.png`, centre panel) tracks the diagonal within the resolution 5 quantile bins allow at n = 81.
+Calibration matters for a candidate screening assay: a model that ranks fish correctly but reports 0.9 for a fish that converts 60% of the time would misallocate any intervention trial built on it. The out-of-fold calibration curve (`fig05_confusion_calibration.png`, centre panel) tracks the diagonal within the resolution 5 quantile bins allow at n = 81.
 
 *Sensitivity:* z-scoring within dose on the whole dataset instead of per training fold gives mean fold AUC 0.853 vs 0.849 fold-safe — the leakage-free implementation costs essentially nothing.
 
@@ -147,19 +156,21 @@ Figures: `fig03_roc_nested_comparison.png`, `fig05_confusion_calibration.png`, `
 
 ---
 
-## Step 3 — Orthogonal validation: paired c-fos pools
+## Step 3 — Exploratory molecular comparison: paired c-fos pools
 
-### Why this is orthogonal
+### Why this is a separate measurement, but not a validation
 
-Steps 1–2 are entirely behavioural: every number derives from how far a larva swims on trial *k*. If that pipeline contained a systematic artefact — a tracking bias, a plate-position effect, a curve-fitting quirk — no amount of internal cross-validation would reveal it, because every fold would inherit the same artefact. Step 3 tests the same hypothesis through a **different measurement modality on a different cohort of fish**: quantitative PCR of an immediate early gene in the `cf_*` larvae, who were sacrificed for molecular work and never contributed a row to the prediction model.
+Steps 1–2 use behavioral measurements. Step 3 uses quantitative PCR of an immediate early gene in a separate `cf_*` cohort whose fish do not enter the prediction model. However, the analysis accepts the workbook's `risk_pool` assignments rather than reconstructing them from a documented scoring and selection algorithm. The result is therefore an exploratory cross-modal comparison, not independent validation.
 
-`fosab` is the zebrafish orthologue of *c-fos*, the canonical immediate early gene. Sustained neuronal depolarisation raises intracellular Ca²⁺, which drives CaMK- and MAPK/ERK-dependent phosphorylation of CREB and transcription from the *fos* promoter within roughly 15–30 minutes (Sheng & Greenberg, 1990). c-fos transcript level is therefore a molecular integrator of recent network activity, and it is the standard readout for mapping seizure-recruited circuits — including in the original characterisation of chemically induced seizures in larval zebrafish (Baraban et al., 2005). Normalisation is against `rpl13a`, one of the reference genes validated as stable across zebrafish development (Tang et al., 2007), by the 2^−ΔΔCт method (Livak & Schmittgen, 2001).
+`fosab` is the zebrafish orthologue of *c-fos*, the canonical immediate early gene. Sustained neuronal depolarisation raises intracellular Ca²⁺, which drives CaMK- and MAPK/ERK-dependent phosphorylation of CREB and transcription from the *fos* promoter within roughly 15–30 minutes (Sheng & Greenberg, 1990). c-fos transcript level is therefore a molecular integrator of recent network activity, and it is the standard readout for mapping seizure-recruited circuits — including in the original characterisation of chemically induced seizures in larval zebrafish (Baraban et al., 2005). Normalisation is against `rpl13a`, one of the reference genes validated as stable across zebrafish development (Tang et al., 2007), by the 2^−ΔΔCt method (Livak & Schmittgen, 2001).
 
-So the prediction is specific and falsifiable: **if the behavioural risk score is tracking genuine network hyperexcitability rather than a measurement artefact, larvae binned as high-risk on behaviour should carry more c-fos transcript than their low-risk pool-mates.** Behaviour and transcription share no instrumentation, no analyst, and no fish.
+The exploratory expectation is that supplied high-risk pools will show higher c-fos fold change than their matched low-risk pools. A difference would be compatible with altered recent neural activity, but would not identify its cause or validate the behavioral label.
 
 ### Statistical treatment
 
 The 18 pools are **9 matched pairs** — one high_risk and one low_risk pool per (group × clutch) cell — and are analysed as such. Treating them as 18 independent units would roughly double the nominal degrees of freedom and ignore the plate/clutch matching.
+
+The nine pairs are not nine fully independent biological replicates: three group-level pairs come from each of only three clutches. The all-pair tests below are therefore nominal. A clutch-averaged sensitivity analysis, which leaves n = 3, is reported separately.
 
 | Contrast | Pairs | Mean Δ (high − low) | 95% CI | Paired t | p | Cohen's dz | Wilcoxon p |
 |---|---|---|---|---|---|---|---|
@@ -168,19 +179,30 @@ The 18 pools are **9 matched pairs** — one high_risk and one low_risk pool per
 | **Sham only (control)** | 3 | +0.0750 | [-0.3336, +0.4836] | t(2) = +0.790 | = 0.5124 | +0.456 | = 0.5000 |
 | All pairs, log2 scale | 9 | +0.3504 | [+0.0453, +0.6556] | t(8) = +2.648 | = 0.0293 | +0.883 | = 0.0273 |
 
+### Clutch-averaged sensitivity
+
+Each row first averages the sham, low-impact, and high-impact pair differences within a clutch, then tests the three clutch means against zero. This conservative sensitivity treats clutch as the independent biological unit.
+
+| Scale | Clutches | Mean high − low | 95% CI | one-sample t | p | Wilcoxon p |
+|---|---|---|---|---|---|---|
+| Raw fold change | 3 | +0.2856 | [-0.2252, +0.7963] | t(2) = +2.406 | = 0.1379 | = 0.2500 |
+| Log2 fold change | 3 | +0.3504 | [-0.1784, +0.8792] | t(2) = +2.851 | = 0.1041 | = 0.2500 |
+
+The nominal nine-pair log2 comparison has p = 0.0293; after averaging within clutch, the log2 sensitivity has p = 0.1041. With only three independent clutches, the molecular comparison is compatible with an effect but does not provide confirmatory evidence.
+
 Direction consistency: 5/6 injured pairs have high_risk > low_risk (exact binomial sign test, p = 0.2188).
 
-**The sham pairs are the control and they behave as they should** — mean difference +0.0750, p = 0.5124, no systematic high-vs-low separation. That is what rules out a pooling or plate artefact.
+The three sham pairs have mean difference +0.0750 (p = 0.5124). This small, non-significant comparison does not rule out a pooling, plate, or bin-assignment artifact.
 
-Read the injured-only row carefully: the point estimate is the largest of the three (+0.3908, dz = 0.98) but with only 6 pairs it does not reach significance on its own (p = 0.0607). The all-pairs test is the primary one; the injured and sham rows show where the effect sits, not two independent confirmations of it.
+Read the injured-only row carefully: the point estimate is the largest of the three (+0.3908, dz = 0.98) but with only 6 pairs it does not reach significance on its own (p = 0.0607). The original all-pairs comparison is nominal; the injured and sham rows show where its point estimate sits, not two independent confirmations of it.
 
-No regression of c-fos on a pooled continuous risk score across all 18 pools was run. The risk score is not on a comparable scale between dose groups (low and high dose move τ in opposite directions), so pooling destroys the contrast the pairing exists to isolate.
+No regression of c-fos on a continuous risk score was run because continuous scores and a reproducible pool-selection rule are not present in the workbook. The normalized membership table verifies the recorded four-fish pools, not the validity of their supplied risk labels.
 
 ### Interpretation
 
-Larvae flagged as high-risk by a purely behavioural model carry **27.5% more c-fos transcript** relative to `rpl13a` than behaviourally low-risk siblings processed on the same plate (geometric mean ratio 1.275, 95% CI [1.032, 1.575], obtained by back-transforming the paired log2 analysis — the appropriate scale for a fold change). Elevated baseline IEG expression in the absence of any provoking stimulus is what a chronically over-active network looks like transcriptionally — the molecular counterpart of the reduced inhibitory gain that a long τ reports behaviourally. Two independent measurement modalities, applied to different fish, point at the same latent variable.
+In the nominal all-pair comparison, supplied high-risk pools have **27.5% higher c-fos fold change** relative to `rpl13a` than supplied low-risk pools processed on the same plate (geometric mean ratio 1.275, 95% CI [1.032, 1.575], back-transformed from the paired log2 analysis). Because three pairs share each clutch, the clutch-averaged log2 result (p = 0.1041) and the missing risk-assignment protocol set the interpretation boundary.
 
-This is corroboration, not proof. It is a bulk measurement on pooled tissue, so it cannot localise the signal to a cell type or region — it cannot distinguish loss of parvalbumin-positive interneuron function from increased glutamatergic drive, and both are documented consequences of traumatic brain injury.
+This is exploratory concordance, not validation. It is a bulk measurement on pooled tissue and cannot localise the signal to a cell type or region. Raw Ct values, technical-replicate results, amplification efficiencies, and qPCR quality-control records are not supplied.
 
 Figure: `fig08_cfos_paired.png` (9 paired lines, plus within-pair differences by group).
 
@@ -188,9 +210,9 @@ Figure: `fig08_cfos_paired.png` (9 paired lines, plus within-pair differences by
 
 ## Step 4 — Descriptive results
 
-### Groups start equal
+### No baseline group difference detected
 
-At the pre-injury baseline (t = −1), τ does not differ between groups: F(2,130) = 0.543, p = 0.5825, η² = 0.0083; Kruskal–Wallis H = 0.522, p = 0.7703. Baseline locomotion likewise (p = 0.1218). Every fish is its own control, and the groups are exchangeable before the blast.
+At the pre-injury baseline (t = −1), no group difference in τ was detected: F(2,130) = 0.543, p = 0.5825, η² = 0.0083; Kruskal–Wallis H = 0.522, p = 0.7703. Baseline locomotion likewise (p = 0.1218). The longitudinal changes are measured within fish, but non-significance does not establish baseline equivalence or prove random assignment.
 
 ### τ moves in opposite directions by dose
 
@@ -202,18 +224,18 @@ At the pre-injury baseline (t = −1), τ does not differ between groups: F(2,13
 
 (mean ± SEM, trials to habituate)
 
-At 0.5 h, Δτ from each fish's own baseline is **+3.74** trials in low_impact and **-2.72** in high_impact — a habituation deficit versus a fatigue-like collapse. Welch t = 10.00, p < 0.0001, Cohen's d = 2.19.
+At 0.5 h, Δτ from each fish's own baseline is **+3.74** trials in low_impact and **-2.72** in high_impact — slower versus faster fitted response decay. Welch t = 10.00, p < 0.0001, Cohen's d = 2.19.
 
-**This is why `dose` must be in the model.** Pooled across doses the two shifts partly cancel, and a dose-blind model of Δτ collapses toward chance — model (a) in the comparison table is the empirical version of that point.
+**Dose changes the biological interpretation of Δτ, but its predictive necessity is an empirical question.** Model (e) tests the two raw changes without dose; model (f) adds baseline τ while remaining fully dose-blind; and the comparison of (f) with (g) isolates dose's incremental contribution.
 
-The divergence is not a nuisance to be corrected away; it is two different lesions on the same circuit:
+The observed directions have different empirical meanings:
 
-- **Low dose → τ rises (habituation deficit).** Sublethal blast preferentially compromises the feedforward inhibitory drive that normally accumulates onto the Mauthner cell across repeated trials. Inhibition builds more slowly, the escape response persists, and τ lengthens. This is disinhibition, and it is the direction that maps most directly onto the loss of GABAergic control reported after experimental brain injury.
-- **High dose → τ falls (fatigue, not learning).** A shorter τ looks superficially like better habituation. It is not. Greater energy deposition depresses the excitatory limb of the circuit as well — the acute metabolic crisis and depolarisation that follow severe injury reduce the startle response itself, so the fitted decay is fast because the response never had far to fall. The fitted amplitude term and the reduced overall responsiveness in the high-impact group at 0.5 h are consistent with this reading.
+- **Low dose → τ rises.** The fitted startle response decays more slowly across trials, which is consistent with impaired habituation.
+- **High dose → τ falls.** The fitted response decays more quickly. This could reflect faster habituation, depressed responsiveness, fatigue, or another process; the present measurements do not distinguish these explanations.
 
-Both are pathological, and they move the same scalar in opposite directions. A model given Δτ without dose is asked to treat +4 trials and −3 trials as opposite kinds of evidence when they are the same kind of evidence about two different lesions. Encoding dose resolves the ambiguity, which is precisely why the full model gains what it does over the ablations.
+The dose groups move the same fitted scalar in opposite directions. A model given Δτ without dose is asked to treat +4 trials and −3 trials as opposite kinds of evidence when they may reflect different processes. Encoding dose is one way to represent that context, but the strong dose-blind behavioral ablation shows that baseline and trajectory can recover substantial predictive information without it.
 
-Note also that neither dose group has returned to its baseline by 24 h (low impact +0.57, high impact -1.60 trials from each fish's own pre-injury session). A circuit that has not renormalised a day after the insult is a circuit still being remodelled — the behavioural correlate of the latent period that precedes spontaneous seizures.
+The group means also remain shifted from baseline at 24 h (low impact +0.57, high impact -1.60 trials from each fish's own pre-injury session). This documents persistent behavioral change; it does not by itself identify circuit remodeling or an epileptogenic latent period.
 
 ### Converters vs non-converters
 
@@ -240,7 +262,7 @@ Figures: `fig09_habituation_curves.png`, `fig10_tau_by_timepoint.png`, `fig11_co
 
 ## PTZ challenge — secondary and underpowered
 
-Pentylenetetrazol is a non-competitive GABAₐ receptor antagonist: it binds at the picrotoxin site, reduces chloride conductance, and removes inhibitory brake from the network. In larval zebrafish it produces stereotyped, dose-dependent seizure behaviour with electrographic correlates (Baraban et al., 2005), which makes it the standard pharmacological probe of **seizure threshold**. The logic here is complementary to the behavioural model: if injured larvae have less inhibitory reserve, a fixed challenge dose should push more of them across threshold. This tests the same excitation/inhibition hypothesis with a drug rather than with a habituation protocol.
+Pentylenetetrazol is a non-competitive GABAₐ receptor antagonist: it binds at the picrotoxin site, reduces chloride conductance, and removes inhibitory brake from the network. In larval zebrafish it produces stereotyped, dose-dependent seizure behaviour with electrographic correlates (Baraban et al., 2005), which makes it the standard pharmacological probe of seizure susceptibility. It is included here as an exploratory, pharmacological comparison rather than as confirmation of the behavioral model.
 
 | Group | Seized / n | Proportion | Wilson 95% CI | Median latency (s) |
 |---|---|---|---|---|
@@ -250,7 +272,7 @@ Pentylenetetrazol is a non-competitive GABAₐ receptor antagonist: it binds at 
 
 χ²(2) = 4.933, p = 0.0849, Cramér's V = 0.381, total n = 34.
 
-> **Explicit statement of limitation.** This probe is underpowered. With 34 fish split across three groups, post-hoc power for the observed sham-versus-injured difference (Cohen's h = 0.80) is only **61%**. The minimum expected cell count is 5.00. It is reported as a directional check consistent with the primary result, and **no conclusion in this report rests on it.**
+> **Explicit statement of limitation.** This probe is underpowered. With 34 fish split across three groups, post-hoc power for the observed sham-versus-injured difference (Cohen's h = 0.80) is only **61%**. The minimum expected cell count is 5.00. It is reported as a directional check only, and **no conclusion in this report rests on it.**
 
 Figure: `fig13_ptz.png`.
 
@@ -269,27 +291,33 @@ All assumption checks are printed to stdout during the run, tagged `[PASS]` or `
 
 Real limitations, stated plainly:
 
-- **n = 81 with 36 events.** EPV = 9.0 is at the accepted floor. The CIs on the AUC and on every coefficient are wide, and they are reported rather than smoothed over.
-- **Three clutches means three outer folds.** The fold-to-fold spread is estimated from three numbers; the SD across folds should be read as indicative, not precise.
-- **7 injured fish were dropped** for a missing post-injury session. This is complete-case analysis; attrition is not obviously outcome-related but has not been modelled.
-- **The c-fos validation is pooled material** — 9 pairs, 4 larvae per pool. It corroborates the primary result; it does not independently establish it.
+- **The model includes n = 81 fish with 36 events.** EPV = 9.0 is low. The CIs on the AUC and on every coefficient are wide, and they are reported rather than smoothed over.
+- **Three clutches means three outer folds.** The fold-to-fold spread is estimated from three numbers; the SD across folds should be read as indicative, not precise. The AUC interval resamples fish within the observed clutches while holding out-of-fold scores fixed, so it is conditional on these clutches and does not include model-selection uncertainty.
+- **7 injured fish were dropped** for a missing post-injury session. This is complete-case analysis, and the missingness mechanism has not been modelled.
+- **The binary outcome is supplied, not derived by code.** The workbook does not document a threshold, recording duration, blinded scoring procedure, or electrographic confirmation.
+- **The c-fos comparison uses pooled material** — 9 group-level pairs, 4 larvae per pool, but only 3 clutches. Risk bins are supplied rather than reproducibly generated, and raw qPCR Ct and QC data are absent.
+- **The workbook represents 253 unique animal IDs across three non-overlapping cohorts** (133 followed, 86 c-fos, and 34 PTZ); 72 of the c-fos animals entered pools.
+- **Data provenance is unresolved in the repository.** Source recordings, instrument exports, dated protocols, approval identifiers, and a label-derivation audit trail are not included.
+- **The feature and model choices are not preregistered.** Nested cross-validation covers penalty tuning, not uncertainty from post-hoc feature, timepoint, or model selection.
 - **PTZ is underpowered** (above), and the study is not designed to support any claim from it.
 
 ## Conclusion
 
-In this dataset, the acute trajectory of startle-habituation kinetics — measured against each fish's own pre-injury baseline and interpreted in the light of blast dose — separates injured larvae that go on to develop spontaneous burst activity from those that do not, with a cross-validated AUC of 0.833 (95% CI [0.736, 0.916]), a total out-of-fold accuracy of 76.5%, and a permutation p = 0.0010 against a null that reruns the entire nested cross-validation. The ablation table shows this is not explicable by sickness, by injury severity, or by a pre-existing trait alone. An independent molecular assay on a separate cohort of larvae points the same way.
+In the supplied dataset, baseline and post-injury startle-habituation features distinguish injured larvae with versus without the supplied `converted` label, with a cross-validated AUC of 0.833 (conditional 95% interval [0.736, 0.916]), a total out-of-fold accuracy of 76.5%, and p = 0.0010 against a null that reruns the entire nested cross-validation. The dose-blind three-behavior model reaches a mean-fold AUC of 0.810, so explicit dose encoding is not necessary for the observed separation. The exploratory c-fos comparison is directionally compatible with altered activity but is not an independent validation.
 
-What that supports is a mechanistic claim of modest scope: **a behavioural readout of inhibitory gain in a defined sensorimotor circuit, sampled within 24 hours of injury, carries information about which animals are undergoing epileptogenesis.** It does not identify the cellular lesion, and it is one experiment in one species at one age.
+The defensible conclusion is narrow: **startle-habituation kinetics carry internally cross-validated information about a later behavioral label in this workbook.** Prospective replication with documented outcome scoring, independent clutches, source-data provenance, and electrographic confirmation is required before calling the assay a biomarker of post-traumatic epilepsy.
 
 ## Background literature
 
-The neurobiological claims above rest on the following. This is a background reading list, not a citation of results generated here.
+The contextual discussion above draws on the following. This is a background reading list, not a citation of results generated here.
+
+> These references were already present in the source repository. A student preparing an ISEF submission must independently read, verify, and format every citation under the current AI-use rules.
 
 1. Annegers JF, Hauser WA, Coan SP, Rocca WA (1998). A population-based study of seizures after traumatic brain injuries. *New England Journal of Medicine* 338:20–24.
 2. Baraban SC, Taylor MR, Castro PA, Baier H (2005). Pentylenetetrazole induced changes in zebrafish behavior, neural activity and c-fos expression. *Neuroscience* 131:759–768.
 3. Burgess HA, Granato M (2007). Sensorimotor gating in larval zebrafish. *Journal of Neuroscience* 27:4984–4994.
 4. Hunt RF, Boychuk JA, Smith BN (2013). Neural circuit mechanisms of post-traumatic epilepsy. *Frontiers in Cellular Neuroscience* 7:89.
-5. Livak KJ, Schmittgen TD (2001). Analysis of relative gene expression data using real-time quantitative PCR and the 2^−ΔΔCт method. *Methods* 25:402–408.
+5. Livak KJ, Schmittgen TD (2001). Analysis of relative gene expression data using real-time quantitative PCR and the 2^−ΔΔCt method. *Methods* 25:402–408.
 6. Marsden KC, Granato M (2015). In vivo Ca²⁺ imaging reveals that decreased dendritic excitability drives startle habituation. *Cell Reports* 13:1733–1740.
 7. Peduzzi P, Concato J, Kemper E, Holford TR, Feinstein AR (1996). A simulation study of the number of events per variable in logistic regression analysis. *Journal of Clinical Epidemiology* 49:1373–1379.
 8. Sheng M, Greenberg ME (1990). The regulation and function of c-fos and other immediate early genes in the nervous system. *Neuron* 4:477–485.

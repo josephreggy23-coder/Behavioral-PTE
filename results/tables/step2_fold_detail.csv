@@ -11,6 +11,12 @@ fold,held_out,n_test,n_events_test,selected_C,auc,key,label
 0,clutch_C,28,16,0.01,0.6302083333333333,d_dose_dtau,(d) dose + z_dtau
 1,clutch_B,27,11,0.01,0.6590909090909091,d_dose_dtau,(d) dose + z_dtau
 2,clutch_A,26,9,100.0,0.5751633986928104,d_dose_dtau,(d) dose + z_dtau
-0,clutch_C,28,16,0.03,0.8802083333333334,e_full,(e) full 4-predictor model
-1,clutch_B,27,11,10.0,0.9090909090909091,e_full,(e) full 4-predictor model
-2,clutch_A,26,9,1.0,0.7581699346405228,e_full,(e) full 4-predictor model
+0,clutch_C,28,16,0.01,0.5989583333333333,e_dtau_only,(e) delta_tau only (dose-blind)
+1,clutch_B,27,11,0.01,0.6590909090909091,e_dtau_only,(e) delta_tau only (dose-blind)
+2,clutch_A,26,9,100.0,0.5163398692810457,e_dtau_only,(e) delta_tau only (dose-blind)
+0,clutch_C,28,16,100.0,0.8489583333333334,f_behavior_no_dose,(f) pre_tau + delta_tau (dose-blind)
+1,clutch_B,27,11,100.0,0.8806818181818181,f_behavior_no_dose,(f) pre_tau + delta_tau (dose-blind)
+2,clutch_A,26,9,10.0,0.6993464052287581,f_behavior_no_dose,(f) pre_tau + delta_tau (dose-blind)
+0,clutch_C,28,16,0.03,0.8802083333333334,e_full,(g) full 4-predictor model
+1,clutch_B,27,11,10.0,0.9090909090909091,e_full,(g) full 4-predictor model
+2,clutch_A,26,9,1.0,0.7581699346405228,e_full,(g) full 4-predictor model

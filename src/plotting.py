@@ -172,7 +172,8 @@ def fig_coefficients(coefs: pd.DataFrame) -> str:
     ax.axvline(0, color="0.5", lw=1, ls="--")
     ax.set(yticks=y, yticklabels=coefs["predictor"],
            xlabel="Ridge logistic coefficient (per SD, standardised scale)",
-           title="Full model coefficients\n(clutch-clustered bootstrap 95% CI)")
+           title=("Full model coefficients\n(within-clutch stratified bootstrap 95% CI; "
+                  "conditional on observed clutches)"))
     fig.tight_layout()
     return _save(fig, "fig06_coefficients.png")
 
@@ -189,7 +190,9 @@ def fig_fold_auc(comparison: pd.DataFrame, folds_long: pd.DataFrame) -> str:
     ax.axhline(0.5, color="0.5", ls="--", lw=1)
     ax.set(xticks=xpos, ylabel="AUC", ylim=(0.0, 1.0),
            title="Nested CV AUC by model (bars = mean of folds, dots = individual clutch folds)")
-    ax.set_xticklabels([l.replace(" ", "\n", 1) for l in comparison["label"]], fontsize=7.5)
+    ax.set_xticklabels(
+        [label.replace(" ", "\n", 1) for label in comparison["label"]], fontsize=7.5
+    )
     fig.tight_layout()
     return _save(fig, "fig07_fold_auc_by_model.png")
 
@@ -345,10 +348,10 @@ def fig_ptz(summary: pd.DataFrame) -> str:
     ax = axes[1]
     ax.axis("off")
     ax.text(0.0, 0.95,
-            "Underpowered by design:\n"
-            f"n = {int(summary['n'].sum())} across 3 groups\n"
-            "Interpret as a directional check only;\n"
-            "the epileptogenesis claim does not rest on it.",
+             "Underpowered at this sample size:\n"
+             f"n = {int(summary['n'].sum())} across 3 groups\n"
+             "Interpret as a directional check only;\n"
+             "no confirmatory claim rests on it.",
             fontsize=9, va="top")
     fig.tight_layout()
     return _save(fig, "fig13_ptz.png")

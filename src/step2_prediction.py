@@ -1,4 +1,4 @@
-"""STEP 2 driver: the nested comparison table, permutation test, leakage check."""
+"""STEP 2 driver: nested model comparison, permutation test, and split sensitivity."""
 from __future__ import annotations
 
 import numpy as np
@@ -86,7 +86,7 @@ def run(model_df: pd.DataFrame, *, n_perm: int = config.N_PERMUTATIONS) -> dict:
     for key, spec in features.MODEL_SPECS.items():
         res = modeling.nested_cv(X, y, groups, spec["features"], seed=config.SEED)
         results[key] = res
-        lo, hi = modeling.bootstrap_auc_ci(y, res["oof"], groups)
+        lo, hi = modeling.bootstrap_auc_ci(y, res["oof"], groups, seed=config.SEED)
         rows.append(
             {
                 "key": key,
@@ -120,7 +120,8 @@ def run(model_df: pd.DataFrame, *, n_perm: int = config.N_PERMUTATIONS) -> dict:
         sb.record("2", "nested_comparison", f"{key}_sd_fold_auc", res["sd_fold_auc"], n=len(y))
         sb.record("2", "nested_comparison", f"{key}_pooled_oof_auc", res["pooled_auc"],
                   ci_low=lo, ci_high=hi, n=len(y),
-                  notes="clutch-clustered bootstrap percentile CI")
+                  notes=("within-clutch stratified bootstrap conditional on the observed "
+                         "clutches; percentile CI"))
         sb.record("2", "nested_comparison", f"{key}_brier", res["brier"], n=len(y))
 
     comparison = pd.DataFrame(rows)
@@ -128,7 +129,8 @@ def run(model_df: pd.DataFrame, *, n_perm: int = config.N_PERMUTATIONS) -> dict:
     comparison.to_csv(config.TABLES / "step2_nested_comparison.csv", index=False)
     folds_long.to_csv(config.TABLES / "step2_fold_detail.csv", index=False)
 
-    print(f"\n  {'model':<32}{'mean fold AUC':>15}{'SD':>7}{'range':>16}{'pooled OOF AUC [95% CI]':>28}")
+    print(f"\n  {'model':<32}{'mean fold AUC':>15}{'SD':>7}{'range':>16}"
+          f"{'pooled OOF AUC [conditional 95% interval]':>45}")
     for r in comparison.itertuples():
         print(f"  {r.label:<32}{r.mean_fold_auc:>15.3f}{r.sd_fold_auc:>7.3f}"
               f"{f'{r.min_fold_auc:.3f}-{r.max_fold_auc:.3f}':>16}"
@@ -140,8 +142,8 @@ def run(model_df: pd.DataFrame, *, n_perm: int = config.N_PERMUTATIONS) -> dict:
 
     full = results["e_full"]
 
-    # ------------------------------------------------------- leakage check
-    sb.banner("STEP 2d -- leakage quantification: random split vs clutch split")
+    # ------------------------------------------ cluster-ignoring split comparison
+    sb.banner("STEP 2d -- random split vs clutch-held-out split")
     naive = modeling.nested_cv(X, y, groups, features.MODEL_SPECS["e_full"]["features"],
                                outer_splits=config.N_RANDOM_SPLIT_FOLDS,
                                seed=config.SEED, random_outer=True)
@@ -154,47 +156,59 @@ def run(model_df: pd.DataFrame, *, n_perm: int = config.N_PERMUTATIONS) -> dict:
               test="GroupKFold on clutch")
     sb.record("2", "leakage", "inflation_auc", inflation, n=len(y),
               notes="random-split AUC minus clutch-split AUC")
-    print(f"  random split (leaky):   mean fold AUC = {naive['mean_fold_auc']:.3f} "
+    print(f"  random split (ignores clutch): mean fold AUC = {naive['mean_fold_auc']:.3f} "
           f"(pooled {naive['pooled_auc']:.3f})")
-    print(f"  clutch split (honest):  mean fold AUC = {full['mean_fold_auc']:.3f} "
+    print(f"  clutch-held-out split:         mean fold AUC = {full['mean_fold_auc']:.3f} "
           f"(pooled {full['pooled_auc']:.3f})")
     print(f"  inflation from ignoring clutch = {inflation:+.3f} AUC")
 
     # ---------------------------------------------------- permutation test
-    sb.banner(f"STEP 2e -- permutation test ({n_perm} full nested-CV reruns)")
-    perm = modeling.permutation_test(
-        X, y, groups, features.MODEL_SPECS["e_full"]["features"],
-        full["pooled_auc"], full["mean_fold_auc"], n_perm=n_perm, seed=config.SEED,
-    )
-    sb.record("2", "permutation", "observed_pooled_auc", full["pooled_auc"], n=len(y))
-    sb.record("2", "permutation", "null_mean_auc", perm["null_mean"], n=n_perm)
-    sb.record("2", "permutation", "null_sd_auc", perm["null_sd"], n=n_perm)
-    sb.record("2", "permutation", "null_95th_percentile", perm["null_q95"], n=n_perm)
-    sb.record("2", "permutation", "p_value_pooled_auc", perm["p_pooled"], n=len(y),
-              test=f"permutation test, {n_perm} label shuffles within clutch",
-              statistic=full["pooled_auc"], p_value=perm["p_pooled"],
-              notes="p = (1 + #{null >= observed}) / (n_perm + 1)")
-    sb.record("2", "permutation", "p_value_mean_fold_auc", perm["p_mean_fold"], n=len(y),
-              test=f"permutation test, {n_perm} shuffles", statistic=full["mean_fold_auc"],
-              p_value=perm["p_mean_fold"])
-    sb.record("2", "permutation", "percentile_of_observed_in_null",
-              perm["percentile_of_observed"], n=n_perm)
-    print(f"  null: mean {perm['null_mean']:.3f}, SD {perm['null_sd']:.3f}, "
-          f"95th pct {perm['null_q95']:.3f}")
-    print(f"  observed pooled AUC {full['pooled_auc']:.3f} sits at the "
-          f"{perm['percentile_of_observed']:.1f}th percentile of the null; p = {perm['p_pooled']:.4f}")
-    print(f"  (mean-fold-AUC statistic: observed {full['mean_fold_auc']:.3f}, "
-          f"p = {perm['p_mean_fold']:.4f})")
-    sb.check("null centred near 0.5 (permutation machinery is unbiased)",
-             abs(perm["null_mean"] - 0.5) < 0.05, f"null mean = {perm['null_mean']:.3f}")
+    if n_perm < 0:
+        raise ValueError("n_perm must be non-negative")
+    if n_perm == 0:
+        sb.banner("STEP 2e -- permutation test skipped")
+        perm = modeling.skipped_permutation_result()
+        sb.record("2", "permutation", "status", "skipped", n=0,
+                  notes="disabled by --skip-permutation or --permutations 0; p-value unavailable")
+        print("  no label shuffles run; permutation p-values are unavailable")
+    else:
+        sb.banner(f"STEP 2e -- permutation test ({n_perm} full nested-CV reruns)")
+        perm = modeling.permutation_test(
+            X, y, groups, features.MODEL_SPECS["e_full"]["features"],
+            full["pooled_auc"], full["mean_fold_auc"], n_perm=n_perm, seed=config.SEED,
+        )
+        sb.record("2", "permutation", "observed_pooled_auc", full["pooled_auc"], n=len(y))
+        sb.record("2", "permutation", "null_mean_auc", perm["null_mean"], n=n_perm)
+        sb.record("2", "permutation", "null_sd_auc", perm["null_sd"], n=n_perm)
+        sb.record("2", "permutation", "null_95th_percentile", perm["null_q95"], n=n_perm)
+        sb.record("2", "permutation", "p_value_pooled_auc", perm["p_pooled"], n=len(y),
+                  test=f"permutation test, {n_perm} label shuffles within clutch",
+                  statistic=full["pooled_auc"], p_value=perm["p_pooled"],
+                  notes="p = (1 + #{null >= observed}) / (n_perm + 1)")
+        sb.record("2", "permutation", "p_value_mean_fold_auc", perm["p_mean_fold"], n=len(y),
+                  test=f"permutation test, {n_perm} shuffles", statistic=full["mean_fold_auc"],
+                  p_value=perm["p_mean_fold"])
+        sb.record("2", "permutation", "percentile_of_observed_in_null",
+                  perm["percentile_of_observed"], n=n_perm)
+        print(f"  null: mean {perm['null_mean']:.3f}, SD {perm['null_sd']:.3f}, "
+              f"95th pct {perm['null_q95']:.3f}")
+        print(f"  observed pooled AUC {full['pooled_auc']:.3f} sits at the "
+              f"{perm['percentile_of_observed']:.1f}th percentile of the null; "
+              f"p = {perm['p_pooled']:.4f}")
+        print(f"  (mean-fold-AUC statistic: observed {full['mean_fold_auc']:.3f}, "
+              f"p = {perm['p_mean_fold']:.4f})")
+        sb.check("null centred near 0.5 (permutation machinery is unbiased)",
+                 abs(perm["null_mean"] - 0.5) < 0.05,
+                 f"null mean = {perm['null_mean']:.3f}")
 
     # --------------------------------------------- final model & diagnostics
     sb.banner("STEP 2f -- full model: coefficients, confusion matrix, calibration")
     final_pipe, best_C = modeling.fit_final_model(
-        X, y, groups, features.MODEL_SPECS["e_full"]["features"]
+        X, y, groups, features.MODEL_SPECS["e_full"]["features"], seed=config.SEED
     )
     coefs = modeling.coefficient_table(
-        final_pipe, X, y, groups, features.MODEL_SPECS["e_full"]["features"], best_C
+        final_pipe, X, y, groups, features.MODEL_SPECS["e_full"]["features"], best_C,
+        seed=config.SEED,
     )
     coefs.to_csv(config.TABLES / "step2_full_model_coefficients.csv", index=False)
     sb.record("2", "full_model", "selected_C_full_data", best_C, n=len(y),
@@ -204,7 +218,8 @@ def run(model_df: pd.DataFrame, *, n_perm: int = config.N_PERMUTATIONS) -> dict:
     for r in coefs.itertuples():
         sb.record("2", "full_model", f"coef_{r.predictor}", r.coef_standardised,
                   ci_low=r.ci_low, ci_high=r.ci_high, n=len(y),
-                  test="ridge logistic (clutch-clustered bootstrap CI)",
+                  test=("ridge logistic (within-clutch stratified bootstrap conditional on the "
+                        "observed clutches)"),
                   effect_size_name="odds ratio per SD", effect_size=r.odds_ratio_per_SD,
                   notes=f"OR 95% CI [{r.or_ci_low:.3f}, {r.or_ci_high:.3f}]; "
                         f"{'excludes' if r.excludes_zero else 'includes'} zero")
@@ -253,7 +268,10 @@ def run(model_df: pd.DataFrame, *, n_perm: int = config.N_PERMUTATIONS) -> dict:
     # ----------------------------------------------------------- figures
     sb.banner("STEP 2g -- figures")
     plotting.fig_roc_comparison(roc_data)
-    plotting.fig_permutation_null(perm["null_pooled"], full["pooled_auc"], perm["p_pooled"], n_perm)
+    if perm["performed"]:
+        plotting.fig_permutation_null(
+            perm["null_pooled"], full["pooled_auc"], perm["p_pooled"], n_perm
+        )
     plotting.fig_confusion_and_calibration(y, full["oof"], cm, full["brier"])
     plotting.fig_coefficients(coefs)
     plotting.fig_fold_auc(comparison, folds_long)

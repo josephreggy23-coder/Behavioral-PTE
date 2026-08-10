@@ -1,4 +1,4 @@
-"""Runner for the larval zebrafish blast-TBI epileptogenesis pipeline.
+"""Runner for the larval zebrafish blast-TBI behavioral-analysis pipeline.
 
     python run_all.py                 # full run
     python run_all.py --permutations 200   # faster smoke run
@@ -50,9 +50,11 @@ def main(argv=None) -> int:
     if args.seed != config.SEED:
         config.SEED = args.seed
     n_perm = 0 if args.skip_permutation else args.permutations
+    if n_perm < 0:
+        ap.error("--permutations must be non-negative")
 
     t0 = time.time()
-    sb.banner("larval zebrafish blast TBI -- post-traumatic epileptogenesis pipeline")
+    sb.banner("larval zebrafish blast TBI -- behavioral outcome analysis pipeline")
     set_seeds(config.SEED)
     print(f"Dataset: {config.DATA_XLSX}")
 
@@ -74,8 +76,8 @@ def main(argv=None) -> int:
     model_df, dropped = features.injured_modeling_set(tbl)
     features.report_features(tbl, model_df, dropped)
     if n_perm == 0:
-        print("\n  [note] permutation test skipped (--skip-permutation)")
-    s2 = step2_prediction.run(model_df, n_perm=max(n_perm, 1))
+        print("\n  [note] permutation test disabled (0 iterations)")
+    s2 = step2_prediction.run(model_df, n_perm=n_perm)
 
     # ---------------------------------------------------------------- step 3
     s3 = step3_cfos.run()

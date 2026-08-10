@@ -1,7 +1,8 @@
 """Global configuration: paths, seed, constants, plot style.
 
 Every stochastic component in this pipeline draws from SEED (or a documented
-offset of it) so that a rerun reproduces every number in RESULTS.md exactly.
+offset of it) to support numerical reproduction with the recorded input and
+tested dependency versions.
 """
 from __future__ import annotations
 
@@ -21,7 +22,7 @@ SEED = 20260809
 # Paths
 # --------------------------------------------------------------------------
 ROOT = Path(__file__).resolve().parents[1]
-DATA_XLSX = ROOT / "realdata.xlsx"
+DATA_XLSX = ROOT / "data" / "raw" / "behavioral_pte_source.xlsx"
 
 RESULTS = ROOT / "results"
 FIGURES = RESULTS / "figures"
@@ -64,7 +65,7 @@ N_PERMUTATIONS = 1000
 N_BOOTSTRAP = 2000
 N_OUTER_FOLDS = 3  # == number of clutches -> leave-one-clutch-out
 N_INNER_FOLDS = 2  # 2 clutches remain inside each outer training set
-N_RANDOM_SPLIT_FOLDS = 5  # for the leakage-quantifying naive comparison
+N_RANDOM_SPLIT_FOLDS = 5  # cluster-ignoring comparison; not the reported design
 
 # --------------------------------------------------------------------------
 # Plot style

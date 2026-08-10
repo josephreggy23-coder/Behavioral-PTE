@@ -2,14 +2,11 @@
 
 Design decisions, all deliberate:
 
-* **Ridge logistic regression only.**  n = 81 with 36 events.  Random forests /
-  gradient boosting have enough capacity to memorise a sample this size, and
-  their fold-to-fold variance here exceeds the effect we are trying to measure.
-  A penalised linear model also yields coefficients we can interpret and sign-check
-  against the biology.
-* **GroupKFold on clutch for the outer split.**  Clutches were run on separate
-  days by different operators; a random split puts siblings from the same clutch
-  on both sides of the partition and the model learns clutch identity.  With 3
+* **Ridge logistic regression only.**  n = 81 with 36 events, so a fixed,
+  regularised linear classifier limits model flexibility and yields inspectable
+  coefficients.  Those coefficients are associations, not mechanistic effects.
+* **GroupKFold on clutch for the outer split.**  A random split mixes
+  clutch-associated observations across training and test partitions.  With 3
   clutches this is leave-one-clutch-out.
 * **Nested CV for C.**  Selecting the penalty on the same folds we report
   optimistically biases AUC at this sample size.  C is chosen inside each outer
@@ -23,7 +20,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
-from sklearn.base import BaseEstimator, TransformerMixin, clone
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     brier_score_loss,
@@ -35,7 +32,7 @@ from sklearn.model_selection import GroupKFold, StratifiedKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from . import config, features, statsbook as sb
+from . import config, features
 
 DOSE_COL = "dose"
 
@@ -235,6 +232,22 @@ def _one_permutation(X, y, groups, feature_cols, seed_i, kwargs):
     return res["pooled_auc"], res["mean_fold_auc"]
 
 
+def skipped_permutation_result() -> dict:
+    """Return the report context for a permutation test that was not run."""
+    return {
+        "null_pooled": np.array([], dtype=float),
+        "null_mean_fold": np.array([], dtype=float),
+        "p_pooled": None,
+        "p_mean_fold": None,
+        "null_mean": None,
+        "null_sd": None,
+        "null_q95": None,
+        "percentile_of_observed": None,
+        "n_perm": 0,
+        "performed": False,
+    }
+
+
 def permutation_test(
     X: pd.DataFrame,
     y: np.ndarray,
@@ -251,9 +264,14 @@ def permutation_test(
     """Shuffle labels WITHIN clutch and rerun the entire nested CV n_perm times.
 
     Within-clutch shuffling preserves each clutch's conversion rate, so the null
-    is 'no fish-level information beyond clutch prevalence' rather than the
-    weaker 'no information at all'.  It is the conservative choice.
+    is 'no fish-level information beyond clutch prevalence' rather than 'no
+    information at all'.
     """
+    if n_perm < 0:
+        raise ValueError("n_perm must be non-negative")
+    if n_perm == 0:
+        return skipped_permutation_result()
+
     out = Parallel(n_jobs=n_jobs, verbose=0)(
         delayed(_one_permutation)(X, y, groups, feature_cols, seed + 1 + i, kwargs)
         for i in range(n_perm)
@@ -272,11 +290,13 @@ def permutation_test(
         "null_q95": float(np.nanquantile(null_pooled, 0.95)),
         "percentile_of_observed": float(100 * np.mean(null_pooled < observed_pooled)),
         "n_perm": n_perm,
+        "performed": True,
     }
 
 
 # --------------------------------------------------------------------------
-# Bootstrap CI for a pooled out-of-fold AUC (clutch-clustered)
+# Bootstrap CI for a pooled out-of-fold AUC, stratified within clutch and
+# conditional on the observed clutches
 # --------------------------------------------------------------------------
 def bootstrap_auc_ci(
     y: np.ndarray, scores: np.ndarray, groups: np.ndarray,
@@ -311,7 +331,7 @@ def fit_final_model(X: pd.DataFrame, y: np.ndarray, groups: np.ndarray,
 def coefficient_table(pipe: Pipeline, X: pd.DataFrame, y: np.ndarray, groups: np.ndarray,
                       feature_cols: list[str], best_C: float,
                       n_boot: int = config.N_BOOTSTRAP, seed: int = config.SEED) -> pd.DataFrame:
-    """Coefficients on the standardised scale with clutch-clustered bootstrap CIs."""
+    """Coefficient CIs from a within-clutch stratified bootstrap conditional on the observed clutches."""
     coefs = pipe.named_steps["logreg"].coef_.ravel()
     rng = np.random.default_rng(seed + 77)
     idx_by_group = {g: np.where(groups == g)[0] for g in np.unique(groups)}

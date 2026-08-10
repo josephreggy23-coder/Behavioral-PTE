@@ -13,7 +13,7 @@ from . import config, io_data, plotting, statsbook as sb
 # Baseline equivalence and tau dynamics
 # --------------------------------------------------------------------------
 def baseline_equivalence(fits: pd.DataFrame) -> None:
-    sb.banner("STEP 4a -- do the groups start equal at the pre-injury baseline?")
+    sb.banner("STEP 4a -- pre-injury baseline group comparison")
     base = fits[fits["timepoint_h"] == config.BASELINE_TP]
     samples = [base.loc[base["group"] == g, "decay_constant_fit"].dropna() for g in config.GROUPS]
 
@@ -37,15 +37,16 @@ def baseline_equivalence(fits: pd.DataFrame) -> None:
               test="one-way ANOVA on baseline tau", statistic=float(f),
               df=f"{k-1},{n-k}", p_value=float(p),
               effect_size_name="eta squared", effect_size=float(eta2),
-              notes="a NON-significant result is the desired outcome here")
+              notes="a non-significant test does not establish equivalence")
     h, ph = stats.kruskal(*samples)
     sb.record("4", "baseline_equivalence", "kruskal_tau", float(h), n=n,
               test="Kruskal-Wallis (robustness)", statistic=float(h), df=k - 1, p_value=float(ph))
-    print(f"  baseline tau by group: " +
+    print("  baseline tau by group: " +
           ", ".join(f"{g} {s.mean():.2f}+/-{s.std(ddof=1):.2f}" for g, s in zip(config.GROUPS, samples)))
     print(f"  ANOVA F({k-1},{n-k}) = {f:.3f}, p = {p:.4f}, eta^2 = {eta2:.4f}; "
           f"Kruskal H = {h:.3f}, p = {ph:.4f}")
-    sb.check("groups are equivalent at baseline (ANOVA p > 0.05)", p > 0.05, f"p = {p:.4f}")
+    sb.check("no baseline tau difference detected (ANOVA p > 0.05)", p > 0.05,
+             f"p = {p:.4f}; this is not an equivalence test")
 
     # baseline locomotion too
     loc = [base.loc[base["group"] == g, "baseline_locomotion"].dropna() for g in config.GROUPS]
@@ -53,7 +54,8 @@ def baseline_equivalence(fits: pd.DataFrame) -> None:
     sb.record("4", "baseline_equivalence", "anova_baseline_locomotion", float(fl), n=len(base),
               test="one-way ANOVA on pre-injury baseline_locomotion", statistic=float(fl),
               df=f"{k-1},{len(base)-k}", p_value=float(pl))
-    sb.check("baseline locomotion equivalent across groups", pl > 0.05, f"p = {pl:.4f}")
+    sb.check("no baseline locomotion difference detected (ANOVA p > 0.05)", pl > 0.05,
+             f"p = {pl:.4f}; this is not an equivalence test")
 
 
 def tau_dynamics(fits: pd.DataFrame) -> pd.DataFrame:
