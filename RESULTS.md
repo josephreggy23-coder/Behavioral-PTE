@@ -16,7 +16,7 @@ Every statistic quoted here is also in [`results/all_statistics.csv`](results/al
 |---|---------|------|-------------|---|
 | 1 | The nonlinear refit reproduces the supplied `decay_constant` | Pearson correlation, 650 sessions | r = 1.0000 | < 0.0001 |
 | 2 | No baseline group difference was detected | one-way ANOVA on baseline τ | η² = 0.0083 | = 0.5825 |
-| 3 | Low and high dose move τ in **opposite** directions after blast | Welch t, Δτ at 0.5 h | d = 2.19 | < 0.0001 |
+| 3 | Low and high dose move τ in **opposite** directions after pressure-wave exposure | Welch t, Δτ at 0.5 h | d = 2.19 | < 0.0001 |
 | 4 | The 4-predictor model distinguishes the supplied `converted` label across held-out clutches | nested CV + 1000 permutations | AUC = 0.833 | = 0.0010 |
 | 5 | Supplied high-risk pools have higher c-fos in the nominal all-pair comparison | paired t, 9 matched pairs | dz = 0.79 | = 0.0449 |
 | 6 | No high-vs-low difference was detected in the three sham pairs | paired t, 3 pairs | dz = 0.46 | = 0.5124 |
@@ -130,7 +130,7 @@ An unpenalised `statsmodels` Logit fit is stored in `results/tables/step2_unpena
 
 #### How to read the coefficients
 
-τ is the fitted number of trials over which the acoustic startle response approaches its floor. Prior work links larval-zebrafish startle habituation to changes in Mauthner-cell dendritic excitability (Marsden & Granato, 2015), which motivates τ as a circuit-sensitive behavioral feature. This experiment does not directly measure inhibition, excitation, or the Mauthner circuit, so the coefficients should be interpreted as predictive associations.
+τ is the fitted number of trials over which the visual dark-flash response approaches its floor. It is an empirical summary of response decay and does not by itself identify a neural mechanism. This experiment does not directly measure inhibition, excitation, or a specific circuit, so the coefficients should be interpreted as predictive associations.
 
 - **`pre_tau` (β = +0.331, OR 1.39 per SD).** Within the fitted model, slower pre-injury habituation is associated with the supplied later label. The design cannot determine whether this is causal susceptibility, confounding, or sampling variation.
 - **`z_dtau_0.5` (β = +0.168, OR 1.18 per SD).** This is the 30-minute change from the fish's own baseline, centered and scaled within dose. Its coefficient estimates an association conditional on the other predictors; it is not a direct measure of inhibitory gain.

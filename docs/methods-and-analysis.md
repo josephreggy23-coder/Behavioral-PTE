@@ -1,8 +1,10 @@
 # Methods and analysis record
 
-This file distinguishes what the repository can reproduce computationally from experimental methods
-that still require primary documentation. It is a post-project technical record, not a reconstructed
-pre-experiment research plan.
+This file records the analysis that the repository reproduces computationally. The author-supplied
+acquisition protocol is now documented separately in
+[experimental-methods.md](experimental-methods.md), together with its differences from the
+canonical workbook. This is a post-project technical record, not a reconstructed pre-experiment
+research plan.
 
 ## Reproducible computational pipeline
 
@@ -19,7 +21,7 @@ remaining values is unsuitable for these data.
 
 ### 2. Prediction table
 
-The primary set contains blast-exposed fish complete on the required predictors and outcome:
+The primary set contains pressure-wave-exposed fish complete on the required predictors and outcome:
 
 - `dose`: high impact = 1, low impact = 0;
 - `pre_tau`: tau at -1 hour;
@@ -59,18 +61,28 @@ and the injured-only contrast is imprecise.
 The secondary PTZ table reports per-group proportions, Wilson intervals, a three-by-two Pearson
 chi-square test, and a descriptive power calculation. With 34 fish, it is explicitly underpowered.
 
-## Experimental methods that are not documented
+## Experimental documentation status
 
-| Component | Required details |
-|---|---|
-| Animals | Strain, source, age at each procedure, sex if determinable, housing, husbandry, health monitoring, disposition |
-| Design | Sample-size rationale, randomization, allocation concealment, blinding, inclusion/exclusion rules, experimental unit |
-| Blast | Device, geometry, calibration, pressure/impulse units, sham exposure, anesthesia, recovery, humane endpoints |
-| Startle assay | Stimulus waveform/intensity, inter-trial interval, camera/tracker, response window, `responded` threshold |
-| Outcome | Recording method and duration, burst definition, blinded scoring, adjudication, electrographic status |
-| qPCR | Tissue/collection time, extraction, primers, efficiencies, technical replicates, Ct exclusions, plate map, batch handling |
-| PTZ | Preparation, exposure duration, observation/scoring protocol, censoring, safety, disposal, animal disposition |
-| Contributions | What the student, mentor, laboratory, and software/AI each contributed |
+The newly supplied protocol adds AB strain, husbandry, developmental timing, infrared-rig hardware,
+visual dark-flash timing, the general syringe pressure-wave procedure, tissue handling, qPCR
+workflow, PTZ exposure timing, and stated randomization and blinding procedures. These additions
+clarify that the author-supplied protocol identifies visual dark flashes rather than an acoustic
+pulse.
 
-Until those details are supplied, the computational methods are reproducible but the experiment is
-not independently reproducible from this repository.
+The methods narrative is not a substitute for primary records, and several statements conflict with
+the workbook. The analysis therefore follows the data-visible structure below.
+
+| Component | Analysis-aligned interpretation | Still needed |
+|---|---|---|
+| Cohorts | 133 longitudinal, 86 molecular, and 34 PTZ IDs are non-overlapping | Linkage records if the cohorts were intended to overlap |
+| Injury | Categorical low/high dose is available | Drop heights, mass, calibration, traces, pressure/impulse values |
+| Habituation | Workbook has 30 trials at five timepoints; supplied protocol identifies visual dark flashes | Videos, tracking code, response window, `responded` threshold |
+| Outcome | `converted` remains a supplied behavioral label | Exact velocity/burst algorithm and adjudication record; electrographic validation |
+| qPCR | 18 four-larva pools form nine supplied high/low pairs | Raw Ct replicates, primers, efficiencies, QC and pool-selection rule |
+| PTZ | Separate 34-animal, all-2.5-mM cohort | Vehicle records, scoring code, preparation, safety and disposition records |
+| Oversight | All procedures are described as ending before 7 dpf | Research site, approval determination/identifier and welfare records |
+| Contributions | AI use is recorded in `ai-use-disclosure.md` | Student, mentor, laboratory and software contribution statement |
+
+The computational methods are reproducible from the repository. The experimental protocol is now
+substantially better documented, but the experiment is not independently reproducible or
+authenticated until the listed primary records are linked.

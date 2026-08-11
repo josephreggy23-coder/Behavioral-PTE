@@ -13,7 +13,7 @@
   "provenance": {
     "status": "unverified",
     "source_record": null,
-    "acquisition_protocol": null,
+    "acquisition_protocol": "docs/experimental-methods.md (author-supplied; not independently verified)",
     "instrument_exports": null,
     "outcome_labeling_protocol": null,
     "approval_identifiers": null,

@@ -269,7 +269,7 @@ def fig_tau_trajectories(fits: pd.DataFrame) -> str:
         ax.errorbar(x + (k - 1) * 0.05, m.values, yerr=se.values, fmt="-o", capsize=3,
                     color=config.GROUP_COLORS[grp], label=config.GROUP_LABELS[grp], ms=5)
     ax.axvline(0.5, color="0.7", ls=":", lw=1.2)
-    ax.text(0.52, ax.get_ylim()[1], " blast", fontsize=7, va="top", color="0.4")
+    ax.text(0.52, ax.get_ylim()[1], " injury", fontsize=7, va="top", color="0.4")
     ax.set(xticks=x, xticklabels=[f"{t:g}" for t in config.TIMEPOINTS],
            xlabel="Timepoint (h; -1 = pre-injury)", ylabel="Decay constant $\\tau$ (trials)",
            title="$\\tau$ by timepoint and group (mean $\\pm$ SEM)\n"

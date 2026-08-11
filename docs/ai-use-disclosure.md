@@ -9,6 +9,8 @@ AI assistance included:
 - checking the workbook schema, sheet counts, row counts, and file checksum;
 - identifying reproducibility and statistical-description issues;
 - editing software documentation;
+- reconciling an author-supplied experimental methods narrative against the canonical workbook and
+  executable pipeline;
 - drafting the AAN abstract from verified repository results in the applicant's requested format;
 - proposing and testing code-quality fixes.
 

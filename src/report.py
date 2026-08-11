@@ -84,7 +84,7 @@ def write(ctx: dict) -> str:
       f"{int(r_agree['n'])} sessions | r = {float(r_agree['value']):.4f} | {_fmt_p(r_agree['p_value'])} |")
     A(f"| 2 | No baseline group difference was detected | one-way ANOVA on baseline τ | "
       f"η² = {float(anova['effect_size']):.4f} | {_fmt_p(anova['p_value'])} |")
-    A(f"| 3 | Low and high dose move τ in **opposite** directions after blast | Welch t, Δτ at 0.5 h | "
+    A(f"| 3 | Low and high dose move τ in **opposite** directions after pressure-wave exposure | Welch t, Δτ at 0.5 h | "
       f"d = {float(_g('tau_change_from_baseline','low_vs_high_delta_t0.5')['effect_size']):.2f} | "
       f"{_fmt_p(_g('tau_change_from_baseline','low_vs_high_delta_t0.5')['p_value'])} |")
     permutation_test_label = (f"nested CV + {perm['n_perm']} permutations" if permutation_ran
@@ -309,11 +309,10 @@ def write(ctx: dict) -> str:
     A("")
     A("#### How to read the coefficients")
     A("")
-    A("τ is the fitted number of trials over which the acoustic startle response approaches its "
-      "floor. Prior work links larval-zebrafish startle habituation to changes in Mauthner-cell "
-      "dendritic excitability (Marsden & Granato, 2015), which motivates τ as a circuit-sensitive "
-      "behavioral feature. This experiment does not directly measure inhibition, excitation, or the "
-      "Mauthner circuit, so the coefficients should be interpreted as predictive associations.")
+    A("τ is the fitted number of trials over which the visual dark-flash response approaches its "
+      "floor. It is an empirical summary of response decay and does not by itself identify a neural "
+      "mechanism. This experiment does not directly measure inhibition, excitation, or a specific "
+      "circuit, so the coefficients should be interpreted as predictive associations.")
     A("")
     pre = coefs[coefs["predictor"] == "pre_tau"].iloc[0]
     d05 = coefs[coefs["predictor"] == "dtau_0.5"].iloc[0]

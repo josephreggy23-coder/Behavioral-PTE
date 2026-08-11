@@ -11,8 +11,8 @@ workbook and repository do not provide a defensible definition.
 | `fish_id` | Cohort-specific animal identifier. Prefixes: `fish_` longitudinal, `cf_` molecular, `ptz_` PTZ. |
 | `group` | `sham`, `low_impact`, or `high_impact`. Physical dose/impulse definitions are not documented. |
 | `clutch` | Biological/recording block: `clutch_A`, `clutch_B`, or `clutch_C`. |
-| `timepoint_h` | Hours relative to injury; `-1` is described as pre-injury baseline. |
-| `well` | Plate-well number. Plate format and allocation method are not documented. |
+| `timepoint_h` | Hours relative to injury; `-1` is pre-injury baseline. Longitudinal records also use 0.5, 1, 5, and 24 h. |
+| `well` | Plate-well number. The supplied protocol describes individual 24-well rearing and 96-well recording, but the mapping is absent. |
 
 ## `habituation_trials` — 19,500 rows
 
@@ -20,7 +20,7 @@ One row per fish-session-trial; declared key `(fish_id, timepoint_h, trial)`.
 
 | Field | Type / unit | Meaning |
 |---|---|---|
-| `trial` | integer, 1-30 | Repeated startle trial number. |
+| `trial` | integer, 1-30 | Repeated trial number. The supplied protocol identifies a visual dark flash: 1 s dark with a 15 s interval. |
 | `block` | integer, 1-6 | Five-trial block. |
 | `distance_mm` | numeric, mm | Distance attributed to the response on that trial. Tracking window is not documented. |
 | `responded` | binary | Supplied response classification; threshold is not documented. |
@@ -45,7 +45,7 @@ One row per longitudinal fish; declared key `fish_id`.
 
 | Field | Type / unit | Meaning |
 |---|---|---|
-| `converted` | binary | Supplied 6-dpf outcome label. The derivation rule is missing. |
+| `converted` | binary | Supplied 6-dpf seizure-like behavioral label. The protocol proposes a sham-95th-percentile rule, but that rule disagrees with 9–11 stored labels depending on percentile convention. |
 | `burst_events_per_hour_6dpf` | events/hour | Supplied burst rate. Values overlap between outcome classes, so this is not itself the label rule. |
 | `mean_burst_duration_s` | seconds | Mean supplied burst duration. |
 
@@ -70,6 +70,10 @@ One row per qPCR pool; declared key `pool_id`. The table forms nine nominal high
 | `cfos_fold_change` | ratio | Supplied fold change, consistent with `2^(-delta_delta_ct)`. |
 | `pooled_fish_ids` | semicolon-delimited text | Four source IDs. This should eventually be normalized to one pool-fish row per record. |
 
+The supplied protocol describes silica-column RNA extraction, DNase treatment, 500-ng reverse
+transcription input, SYBR Green chemistry, three technical replicates, and 2^(−ΔΔCt)
+quantification. Raw Ct replicates and QC files are not included.
+
 ## `ptz_challenge` — 34 rows
 
 One row per separate PTZ-cohort fish; declared key `fish_id`.
@@ -77,7 +81,7 @@ One row per separate PTZ-cohort fish; declared key `fish_id`.
 | Field | Type / unit | Meaning |
 |---|---|---|
 | `ptz_mM` | millimolar | PTZ concentration; 2.5 for all records. |
-| `latency_s` | seconds | Supplied latency. Repeated 1,800-second values appear to be censored, but the protocol is missing. |
+| `latency_s` | seconds | Supplied latency during a reported 30-minute exposure; 1,800 s is the specified right-censoring time. |
 | `seized` | binary | Supplied seizure-like response label; scoring rule is missing. |
 | `baseline_locomotion` | numeric, unit not documented | Baseline locomotion summary. |
 

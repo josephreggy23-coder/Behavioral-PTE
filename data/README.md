@@ -15,12 +15,14 @@ ranges, no duplicate rows, and no duplicate declared keys. This is a structural 
 The repository does not contain enough primary documentation to authenticate how the observations
 were acquired or labeled.
 
-Before using this dataset in a competition or publication, add a provenance record that identifies:
+An author-supplied acquisition protocol is now documented in
+[`docs/experimental-methods.md`](../docs/experimental-methods.md). Before using this dataset in a
+competition or publication, link the primary records that substantiate it, including:
 
 - the data owner and permitted reuse terms;
 - dates and research site;
-- organism source, age, husbandry, and cohort disposition;
-- blast, habituation, outcome, qPCR, and PTZ protocols;
+- organism source, collection dates, cohort disposition, and welfare/oversight records;
+- exact injury calibration, tracking thresholds, outcome-label generation, qPCR QC, and PTZ records;
 - raw video or instrument-export inventory and immutable checksums;
 - randomization, blinding, exclusions, and outcome-labeling rules;
 - applicable prior approvals and the public-safe approval identifiers.

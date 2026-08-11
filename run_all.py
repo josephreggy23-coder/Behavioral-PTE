@@ -1,4 +1,4 @@
-"""Runner for the larval zebrafish blast-TBI behavioral-analysis pipeline.
+"""Runner for the larval zebrafish pressure-wave-injury behavioral-analysis pipeline.
 
     python run_all.py                 # full run
     python run_all.py --permutations 200   # faster smoke run
@@ -54,7 +54,7 @@ def main(argv=None) -> int:
         ap.error("--permutations must be non-negative")
 
     t0 = time.time()
-    sb.banner("larval zebrafish blast TBI -- behavioral outcome analysis pipeline")
+    sb.banner("larval zebrafish pressure-wave injury -- behavioral outcome analysis pipeline")
     set_seeds(config.SEED)
     print(f"Dataset: {config.DATA_XLSX}")
 
