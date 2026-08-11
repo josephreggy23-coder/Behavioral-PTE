@@ -1,4 +1,4 @@
-"""STEP 3 -- exploratory molecular comparison using the paired c-fos pools.
+"""STEP 3 -- orthogonal molecular validation using the paired c-fos pools.
 
 The 18 pools are NOT 18 independent observations.  They are 9 matched pairs:
 one high_risk and one low_risk pool per (group x clutch) cell, processed on the
@@ -186,7 +186,7 @@ def _paired_test(
 
 
 def run(pools: pd.DataFrame | None = None) -> dict:
-    sb.banner("STEP 3 -- paired c-fos pools (9 matched high_risk / low_risk pairs)")
+    sb.banner("STEP 3 -- orthogonal molecular validation: paired c-fos pools")
     source_pools = io_data.cfos_pools() if pools is None else pools.copy()
     membership = build_pool_membership(source_pools)
     membership.to_csv(config.TABLES / "step3_cfos_pool_membership.csv", index=False)

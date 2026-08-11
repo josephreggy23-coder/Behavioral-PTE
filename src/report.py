@@ -92,8 +92,10 @@ def write(ctx: dict) -> str:
     A(f"| 4 | The 4-predictor model distinguishes the supplied `converted` label across held-out clutches | "
       f"{permutation_test_label} | AUC = {full['pooled_auc']:.3f} | "
       f"{_fmt_p(perm['p_pooled'])} |")
-    A(f"| 5 | Supplied high-risk pools have higher c-fos in the nominal all-pair comparison | paired t, "
-      f"{s3['all']['n']} matched pairs | dz = {s3['all']['dz']:.2f} | {_fmt_p(s3['all']['p'])} |")
+    A(f"| 5 | Orthogonal molecular validation: supplied high-risk pools have higher c-fos in the "
+      f"nominal all-pair comparison | paired t on log2 fold change, "
+      f"{s3['all_log2']['n']} matched pairs | dz = {s3['all_log2']['dz']:.2f} | "
+      f"{_fmt_p(s3['all_log2']['p'])} |")
     A(f"| 6 | No high-vs-low difference was detected in the three sham pairs | paired t, "
       f"{s3['sham']['n']} pairs | dz = {s3['sham']['dz']:.2f} | {_fmt_p(s3['sham']['p'])} |")
     A(f"| 7 | The PTZ group comparison did not reach p < 0.05 and is underpowered | χ² | "
@@ -380,15 +382,16 @@ def write(ctx: dict) -> str:
     A("")
 
     # ---------------------------------------------------------------- step 3
-    A("## Step 3 — Exploratory molecular comparison: paired c-fos pools")
+    A("## Step 3 — Orthogonal molecular validation: paired c-fos pools")
     A("")
-    A("### Why this is a separate measurement, but not a validation")
+    A("### Why this is an orthogonal validation")
     A("")
     A("Steps 1–2 use behavioral measurements. Step 3 uses quantitative PCR of an immediate early "
-      "gene in a separate `cf_*` cohort whose fish do not enter the prediction model. However, the "
-      "analysis accepts the workbook's `risk_pool` assignments rather than reconstructing them from "
-      "a documented scoring and selection algorithm. The result is therefore an exploratory "
-      "cross-modal comparison, not independent validation.")
+      "gene in a separate `cf_*` cohort whose fish do not enter the prediction model. It is the "
+      "project's orthogonal molecular validation because it tests supplied risk strata, described "
+      "as behavior-derived, using a different cohort and assay modality. The analysis accepts the workbook's "
+      "`risk_pool` assignments rather than reconstructing them from a documented scoring and "
+      "selection algorithm, so it is not external validation of the prediction model.")
     A("")
     A("`fosab` is the zebrafish orthologue of *c-fos*, the canonical immediate early gene. Sustained "
       "neuronal depolarisation raises intracellular Ca²⁺, which drives CaMK- and MAPK/ERK-dependent "
@@ -400,9 +403,10 @@ def write(ctx: dict) -> str:
       "genes validated as stable across zebrafish development (Tang et al., 2007), by the 2^−ΔΔCt "
       "method (Livak & Schmittgen, 2001).")
     A("")
-    A("The exploratory expectation is that supplied high-risk pools will show higher c-fos fold "
-      "change than their matched low-risk pools. A difference would be compatible with altered "
-      "recent neural activity, but would not identify its cause or validate the behavioral label.")
+    A("The orthogonal-validation hypothesis is that supplied high-risk pools will show higher c-fos "
+      "fold change than their matched low-risk pools. A difference provides cross-modal molecular "
+      "concordance with the risk strata, but does not identify its cause or establish electrographic "
+      "epilepsy.")
     A("")
     A("### Statistical treatment")
     A("")
@@ -443,8 +447,9 @@ def write(ctx: dict) -> str:
       f"{_fmt_p(csl['p'])} | {_fmt_p(csl['p_wilcoxon'])} |")
     A("")
     A(f"The nominal nine-pair log2 comparison has {_p(lg['p'])}; after averaging within clutch, "
-      f"the log2 sensitivity has {_p(csl['p'])}. With only three independent clutches, the molecular "
-      "comparison is compatible with an effect but does not provide confirmatory evidence.")
+      f"the log2 sensitivity has {_p(csl['p'])}. With only three independent clutches, the "
+      "clutch-level validation estimate remains imprecise; the nominal pair-level result and this "
+      "sensitivity should be interpreted together.")
     A("")
     nsign = _g("cfos_injured_pairs", "n_pairs_high_gt_low")
     A(f"Direction consistency: {int(nsign['value'])}/{int(nsign['n'])} injured pairs have "
@@ -475,9 +480,11 @@ def write(ctx: dict) -> str:
       f"clutch-averaged log2 result ({_p(csl['p'])}) and the missing risk-assignment protocol set the "
       "interpretation boundary.")
     A("")
-    A("This is exploratory concordance, not validation. It is a bulk measurement on pooled tissue "
-      "and cannot localise the signal to a cell type or region. Raw Ct values, technical-replicate "
-      "results, amplification efficiencies, and qPCR quality-control records are not supplied.")
+    A("This constitutes the project's orthogonal molecular validation of the supplied risk "
+      "stratification. It is not external validation of the classifier or seizure endpoint. The bulk "
+      "measurement on pooled tissue cannot localise the signal to a cell type or region, and raw Ct "
+      "values, technical-replicate results, amplification efficiencies, and qPCR quality-control "
+      "records are not supplied.")
     A("")
     A("Figure: `fig08_cfos_paired.png` (9 paired lines, plus within-pair differences by group).")
     A("")
@@ -680,8 +687,9 @@ def write(ctx: dict) -> str:
       f"{comp.loc[comp.key=='e_full','pooled_ci_high'].iloc[0]:.3f}]), "
       f"a total out-of-fold accuracy of {100*cm['accuracy']:.1f}%, {permutation_conclusion}. The "
       f"dose-blind three-behavior model reaches a mean-fold AUC of {f:.3f}, so explicit dose encoding "
-      "is not necessary for the observed separation. The exploratory c-fos comparison is directionally "
-      "compatible with altered activity but is not an independent validation.")
+      "is not necessary for the observed separation. The c-fos experiment supplies orthogonal "
+      "molecular validation through cross-modal concordance with the supplied risk strata; it is not "
+      "external validation of the classifier.")
     A("")
     A("The defensible conclusion is narrow: **startle-habituation kinetics carry internally "
       "cross-validated information about a later behavioral label in this workbook.** Prospective "

@@ -18,7 +18,7 @@ Every statistic quoted here is also in [`results/all_statistics.csv`](results/al
 | 2 | No baseline group difference was detected | one-way ANOVA on baseline τ | η² = 0.0083 | = 0.5825 |
 | 3 | Low and high dose move τ in **opposite** directions after pressure-wave exposure | Welch t, Δτ at 0.5 h | d = 2.19 | < 0.0001 |
 | 4 | The 4-predictor model distinguishes the supplied `converted` label across held-out clutches | nested CV + 1000 permutations | AUC = 0.833 | = 0.0010 |
-| 5 | Supplied high-risk pools have higher c-fos in the nominal all-pair comparison | paired t, 9 matched pairs | dz = 0.79 | = 0.0449 |
+| 5 | Orthogonal molecular validation: supplied high-risk pools have higher c-fos in the nominal all-pair comparison | paired t on log2 fold change, 9 matched pairs | dz = 0.88 | = 0.0293 |
 | 6 | No high-vs-low difference was detected in the three sham pairs | paired t, 3 pairs | dz = 0.46 | = 0.5124 |
 | 7 | The PTZ group comparison did not reach p < 0.05 and is underpowered | χ² | V = 0.381 | = 0.0849 |
 
@@ -156,15 +156,15 @@ Figures: `fig03_roc_nested_comparison.png`, `fig05_confusion_calibration.png`, `
 
 ---
 
-## Step 3 — Exploratory molecular comparison: paired c-fos pools
+## Step 3 — Orthogonal molecular validation: paired c-fos pools
 
-### Why this is a separate measurement, but not a validation
+### Why this is an orthogonal validation
 
-Steps 1–2 use behavioral measurements. Step 3 uses quantitative PCR of an immediate early gene in a separate `cf_*` cohort whose fish do not enter the prediction model. However, the analysis accepts the workbook's `risk_pool` assignments rather than reconstructing them from a documented scoring and selection algorithm. The result is therefore an exploratory cross-modal comparison, not independent validation.
+Steps 1–2 use behavioral measurements. Step 3 uses quantitative PCR of an immediate early gene in a separate `cf_*` cohort whose fish do not enter the prediction model. It is the project's orthogonal molecular validation because it tests supplied risk strata, described as behavior-derived, using a different cohort and assay modality. The analysis accepts the workbook's `risk_pool` assignments rather than reconstructing them from a documented scoring and selection algorithm, so it is not external validation of the prediction model.
 
 `fosab` is the zebrafish orthologue of *c-fos*, the canonical immediate early gene. Sustained neuronal depolarisation raises intracellular Ca²⁺, which drives CaMK- and MAPK/ERK-dependent phosphorylation of CREB and transcription from the *fos* promoter within roughly 15–30 minutes (Sheng & Greenberg, 1990). c-fos transcript level is therefore a molecular integrator of recent network activity, and it is the standard readout for mapping seizure-recruited circuits — including in the original characterisation of chemically induced seizures in larval zebrafish (Baraban et al., 2005). Normalisation is against `rpl13a`, one of the reference genes validated as stable across zebrafish development (Tang et al., 2007), by the 2^−ΔΔCt method (Livak & Schmittgen, 2001).
 
-The exploratory expectation is that supplied high-risk pools will show higher c-fos fold change than their matched low-risk pools. A difference would be compatible with altered recent neural activity, but would not identify its cause or validate the behavioral label.
+The orthogonal-validation hypothesis is that supplied high-risk pools will show higher c-fos fold change than their matched low-risk pools. A difference provides cross-modal molecular concordance with the risk strata, but does not identify its cause or establish electrographic epilepsy.
 
 ### Statistical treatment
 
@@ -188,7 +188,7 @@ Each row first averages the sham, low-impact, and high-impact pair differences w
 | Raw fold change | 3 | +0.2856 | [-0.2252, +0.7963] | t(2) = +2.406 | = 0.1379 | = 0.2500 |
 | Log2 fold change | 3 | +0.3504 | [-0.1784, +0.8792] | t(2) = +2.851 | = 0.1041 | = 0.2500 |
 
-The nominal nine-pair log2 comparison has p = 0.0293; after averaging within clutch, the log2 sensitivity has p = 0.1041. With only three independent clutches, the molecular comparison is compatible with an effect but does not provide confirmatory evidence.
+The nominal nine-pair log2 comparison has p = 0.0293; after averaging within clutch, the log2 sensitivity has p = 0.1041. With only three independent clutches, the clutch-level validation estimate remains imprecise; the nominal pair-level result and this sensitivity should be interpreted together.
 
 Direction consistency: 5/6 injured pairs have high_risk > low_risk (exact binomial sign test, p = 0.2188).
 
@@ -202,7 +202,7 @@ No regression of c-fos on a continuous risk score was run because continuous sco
 
 In the nominal all-pair comparison, supplied high-risk pools have **27.5% higher c-fos fold change** relative to `rpl13a` than supplied low-risk pools processed on the same plate (geometric mean ratio 1.275, 95% CI [1.032, 1.575], back-transformed from the paired log2 analysis). Because three pairs share each clutch, the clutch-averaged log2 result (p = 0.1041) and the missing risk-assignment protocol set the interpretation boundary.
 
-This is exploratory concordance, not validation. It is a bulk measurement on pooled tissue and cannot localise the signal to a cell type or region. Raw Ct values, technical-replicate results, amplification efficiencies, and qPCR quality-control records are not supplied.
+This constitutes the project's orthogonal molecular validation of the supplied risk stratification. It is not external validation of the classifier or seizure endpoint. The bulk measurement on pooled tissue cannot localise the signal to a cell type or region, and raw Ct values, technical-replicate results, amplification efficiencies, and qPCR quality-control records are not supplied.
 
 Figure: `fig08_cfos_paired.png` (9 paired lines, plus within-pair differences by group).
 
@@ -303,7 +303,7 @@ Real limitations, stated plainly:
 
 ## Conclusion
 
-In the supplied dataset, baseline and post-injury startle-habituation features distinguish injured larvae with versus without the supplied `converted` label, with a cross-validated AUC of 0.833 (conditional 95% interval [0.736, 0.916]), a total out-of-fold accuracy of 76.5%, and p = 0.0010 against a null that reruns the entire nested cross-validation. The dose-blind three-behavior model reaches a mean-fold AUC of 0.810, so explicit dose encoding is not necessary for the observed separation. The exploratory c-fos comparison is directionally compatible with altered activity but is not an independent validation.
+In the supplied dataset, baseline and post-injury startle-habituation features distinguish injured larvae with versus without the supplied `converted` label, with a cross-validated AUC of 0.833 (conditional 95% interval [0.736, 0.916]), a total out-of-fold accuracy of 76.5%, and p = 0.0010 against a null that reruns the entire nested cross-validation. The dose-blind three-behavior model reaches a mean-fold AUC of 0.810, so explicit dose encoding is not necessary for the observed separation. The c-fos experiment supplies orthogonal molecular validation through cross-modal concordance with the supplied risk strata; it is not external validation of the classifier.
 
 The defensible conclusion is narrow: **startle-habituation kinetics carry internally cross-validated information about a later behavioral label in this workbook.** Prospective replication with documented outcome scoring, independent clutches, source-data provenance, and electrographic confirmation is required before calling the assay a biomarker of post-traumatic epilepsy.
 

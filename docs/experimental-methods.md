@@ -137,10 +137,10 @@ The canonical workbook represents a non-overlapping molecular ID cohort of 86 `c
 no linkage to the longitudinal IDs. Seventy-two of them appear in 18 pools of four larvae; 14 are
 unpooled. This conflicts with the supplied narrative's estimate of three larvae per extraction and
 approximately 27 pools. The repository therefore reports the workbook structure and treats the
-nine supplied high-/low-risk pool pairs as an exploratory comparison. The narrative describes
-pooling by conversion status, while the workbook instead stores undocumented `high_risk` and
-`low_risk` labels. Raw Ct replicates, primer sequences, efficiencies, QC outputs, and a reproducible
-risk-pool selection rule are not available.
+nine supplied high-/low-risk pool pairs as the orthogonal molecular validation layer. The narrative
+describes pooling by conversion status, while the workbook instead stores undocumented `high_risk`
+and `low_risk` labels. Raw Ct replicates, primer sequences, efficiencies, QC outputs, and a
+reproducible risk-pool selection rule are not available.
 
 ## 8. Pentylenetetrazol challenge
 

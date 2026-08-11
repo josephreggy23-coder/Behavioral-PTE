@@ -49,12 +49,13 @@ The pipeline compares the full model with restricted models. A restricted model 
 rule out every biological alternative represented by its variable; it only measures predictive
 information available from that input under the specified validation.
 
-### 4. Molecular comparison
+### 4. Orthogonal molecular validation
 
 `cfos_pools` is pivoted into nine supplied high/low pairs, one pair per group-clutch cell. Paired
-tests are run on fold change and log2 fold change. This analysis is exploratory because pool labels
-and selection are not regenerated, raw Ct/QC data are missing, three group-pairs share each clutch,
-and the injured-only contrast is imprecise.
+tests are run on fold change and log2 fold change. This is the orthogonal validation layer because a
+separate qPCR modality tests molecular concordance with the supplied risk strata. Its
+precision is limited because pool labels and selection are not regenerated, raw Ct/QC data are
+missing, three group-pairs share each clutch, and the injured-only contrast is imprecise.
 
 ### 5. PTZ comparison
 

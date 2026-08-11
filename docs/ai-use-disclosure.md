@@ -11,13 +11,21 @@ AI assistance included:
 - editing software documentation;
 - reconciling an author-supplied experimental methods narrative against the canonical workbook and
   executable pipeline;
-- drafting the AAN abstract from verified repository results in the applicant's requested format;
+- researching the official ISEF judging rubric and current rules, then restructuring the README to
+  expose rubric evidence, readiness gaps, and compliance boundaries;
+- revising the generated-results narrative and documentation to frame the c-fos comparison as
+  orthogonal molecular validation while distinguishing it from external classifier or seizure-endpoint
+  validation;
+- drafting a labeled AI-generated analysis summary from repository results;
 - proposing and testing code-quality fixes.
 
 AI assistance did **not** authenticate the experimental data or supply missing laboratory records.
 The applicant is responsible for verifying every claim, understanding the analysis, documenting
-their own contribution, revising the abstract into their own written work, and disclosing AI use in
-the manner required by the competition.
+their own contribution, writing a new abstract independently from a blank page, and disclosing AI
+use in the manner required by the competition.
 
-Before submission or presentation, the student should revise all explanatory materials into their
-own voice and retain a dated record of what assistance was used.
+Current ISEF rules prohibit generative AI from writing the ISEF research plan, abstract, poster, or
+citations. Before submission or presentation, the student must create those materials independently
+in their own words, retain a dated prompt-and-response log—or a summary only if the log is
+unavailable—and disclose and acknowledge the support on the required Student Support Disclosure
+Form (2A).
