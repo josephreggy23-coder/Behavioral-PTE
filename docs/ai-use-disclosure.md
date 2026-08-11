@@ -11,8 +11,8 @@ AI assistance included:
 - editing software documentation;
 - reconciling an author-supplied experimental methods narrative against the canonical workbook and
   executable pipeline;
-- researching the official ISEF judging rubric and current rules, then restructuring the README to
-  expose rubric evidence, readiness gaps, and compliance boundaries;
+- researching official ISEF rules and advising on competition-readiness and documentation
+  boundaries;
 - revising the generated-results narrative and documentation to frame the c-fos comparison as
   orthogonal molecular validation while distinguishing it from external classifier or seizure-endpoint
   validation;
