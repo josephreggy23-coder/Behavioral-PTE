@@ -55,7 +55,7 @@ def write(ctx: dict) -> str:
     L: list[str] = []
     A = L.append
 
-    A("# Results — startle-habituation kinetics and a supplied post-injury behavioral label")
+    A("# Results — visual dark-flash habituation kinetics and a supplied post-injury behavioral label")
     A("")
     A(f"**Source:** `{config.DATA_XLSX.relative_to(config.ROOT).as_posix()}`")
     A("")
@@ -64,7 +64,8 @@ def write(ctx: dict) -> str:
       "reproduces the analysis numerically.")
     A("")
     A("> **Interpretation boundary.** These analyses use the supplied workbook. The repository does "
-      "not include source videos, electrographic recordings, raw qPCR Ct data, animal-approval "
+      "not include raw H.264 videos, ToxTrac project/ROI/calibration files, centroid TSV exports, "
+      "tracking-validation records, electrographic recordings, raw qPCR Ct data, animal-approval "
       "records, or a reproducible protocol for deriving the `converted` and `risk_pool` labels. "
       "The results therefore describe internal associations with supplied labels; they do not "
       "establish epilepsy or validate a biomarker.")
@@ -107,6 +108,10 @@ def write(ctx: dict) -> str:
 
     # ---------------------------------------------------------------- step 1
     A("## Step 1 — Re-estimating the habituation feature")
+    A("")
+    A("The project author describes `distance_mm` as cumulative frame-to-frame centroid displacement "
+      "during 0–1000 ms after each dark flash, derived from ToxTrac v2.50 tracks. This executable "
+      "pipeline begins with the supplied trial distances and does not process raw video frames.")
     A("")
     A("Per fish per session, `distance_mm(k) = A·exp(−(k−1)/τ) + C` was fitted to all 30 trials by "
       "nonlinear least squares (`scipy.optimize.curve_fit`, bounded, four starting points per "
@@ -534,7 +539,7 @@ def write(ctx: dict) -> str:
     A("")
     A("The observed directions have different empirical meanings:")
     A("")
-    A("- **Low dose → τ rises.** The fitted startle response decays more slowly across trials, which is "
+    A("- **Low dose → τ rises.** The fitted visual dark-flash response decays more slowly across trials, which is "
       "consistent with impaired habituation.")
     A("- **High dose → τ falls.** The fitted response decays more quickly. This could reflect faster "
       "habituation, depressed responsiveness, fatigue, or another process; the present measurements "
@@ -660,15 +665,17 @@ def write(ctx: dict) -> str:
     A(f"- **{int(_g('design_matrix','n_excluded_incomplete')['value'])} injured fish were dropped** for "
       "a missing post-injury session. This is complete-case analysis, and the missingness mechanism "
       "has not been modelled.")
-    A("- **The binary outcome is supplied, not derived by code.** The workbook does not document a "
-      "threshold, recording duration, blinded scoring procedure, or electrographic confirmation.")
+    A("- **The binary outcome is supplied, not derived by code.** The protocol describes a one-hour "
+      "recording, but the exact velocity/burst algorithm, blinded label-derivation record, and "
+      "electrographic confirmation are absent.")
     A("- **The c-fos comparison uses pooled material** — 9 group-level pairs, 4 larvae per pool, but "
       "only 3 clutches. Risk bins are supplied rather than reproducibly generated, and raw qPCR Ct "
       "and QC data are absent.")
     A("- **The workbook represents 253 unique animal IDs across three non-overlapping cohorts** "
       "(133 followed, 86 c-fos, and 34 PTZ); 72 of the c-fos animals entered pools.")
-    A("- **Data provenance is unresolved in the repository.** Source recordings, instrument exports, "
-      "dated protocols, approval identifiers, and a label-derivation audit trail are not included.")
+    A("- **Data provenance is unresolved in the repository.** Raw H.264 videos, ToxTrac native "
+      "configuration/ROI/calibration files, centroid TSV exports, tracking-QC and manual-validation "
+      "records, dated protocols, approval identifiers, and a label-derivation audit trail are absent.")
     A("- **The feature and model choices are not preregistered.** Nested cross-validation covers "
       "penalty tuning, not uncertainty from post-hoc feature, timepoint, or model selection.")
     A("- **PTZ is underpowered** (above), and the study is not designed to support any claim from it.")
@@ -680,7 +687,7 @@ def write(ctx: dict) -> str:
         if permutation_ran
         else "with the permutation p-value unavailable because that test was not run"
     )
-    A(f"In the supplied dataset, baseline and post-injury startle-habituation features distinguish "
+    A(f"In the supplied dataset, baseline and post-injury visual dark-flash habituation features distinguish "
       f"injured larvae with versus without the supplied `converted` label, with a "
       f"cross-validated AUC of {full['pooled_auc']:.3f} "
       f"(conditional 95% interval [{comp.loc[comp.key=='e_full','pooled_ci_low'].iloc[0]:.3f}, "
@@ -691,7 +698,7 @@ def write(ctx: dict) -> str:
       "molecular validation through cross-modal concordance with the supplied risk strata; it is not "
       "external validation of the classifier.")
     A("")
-    A("The defensible conclusion is narrow: **startle-habituation kinetics carry internally "
+    A("The defensible conclusion is narrow: **visual dark-flash habituation kinetics carry internally "
       "cross-validated information about a later behavioral label in this workbook.** Prospective "
       "replication with documented outcome scoring, independent clutches, source-data provenance, "
       "and electrographic confirmation is required before calling the assay a biomarker of "

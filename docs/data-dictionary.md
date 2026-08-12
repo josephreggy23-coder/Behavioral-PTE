@@ -22,9 +22,9 @@ One row per fish-session-trial; declared key `(fish_id, timepoint_h, trial)`.
 |---|---|---|
 | `trial` | integer, 1-30 | Repeated trial number. The supplied protocol identifies a visual dark flash: 1 s dark with a 15 s interval. |
 | `block` | integer, 1-6 | Five-trial block. |
-| `distance_mm` | numeric, mm | Supplied per-trial response distance, described as derived from top-down infrared centroid tracking. The raw video, centroid implementation, and response window are not documented. |
+| `distance_mm` | numeric, mm | Author-described cumulative frame-to-frame centroid displacement from ToxTrac v2.50 during 0–1000 ms after dark-flash onset. Raw H.264 video, native configuration, centroid TSV exports, and the coordinate-processing script are not included. |
 | `responded` | binary | Supplied response classification; threshold is not documented. |
-| `baseline_locomotion` | numeric, unit not documented | Session-level spontaneous-locomotion value from the same tracking system, repeated across the 30 trial rows; its calculation window is unavailable. |
+| `baseline_locomotion` | numeric, unit not documented | Session-level spontaneous-locomotion value from the same tracking workflow, repeated across the 30 trial rows. The protocol describes a 10-minute baseline recording, but the field's exact aggregation and unit remain unavailable. |
 
 ## `fish_features` — 650 rows
 
@@ -32,9 +32,9 @@ One row per longitudinal fish-session; declared key `(fish_id, timepoint_h)`.
 
 | Field | Type / unit | Meaning |
 |---|---|---|
-| `amplitude` | numeric, apparently mm | Supplied `A` from `A * exp(-(k-1)/tau) + C`. |
+| `amplitude` | numeric, mm | Supplied `A` from `A * exp(-(k-1)/tau) + C`. |
 | `decay_constant` | numeric, trials | Supplied habituation decay constant `tau`. |
-| `offset` | numeric, apparently mm | Supplied asymptotic offset `C`. |
+| `offset` | numeric, mm | Supplied asymptotic offset `C`. |
 | `baseline_locomotion` | numeric, unit not documented | Session-level locomotion summary. |
 | `resp_prob_block1`, `resp_prob_block6` | proportion | Supplied response proportions for the first and sixth blocks. |
 | `mean_distance` | numeric, mm | Mean trial distance for the session. |

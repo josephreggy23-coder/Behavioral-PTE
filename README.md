@@ -16,13 +16,14 @@ be present but difficult to measure at scale. This project tests whether the **s
 habituation over time**—not just a single startle response—contains information about later
 seizure-like behavior.
 
-Larval zebrafish were followed before and after pressure-wave exposure using an author-described,
-custom top-down infrared video rig intended for whole-animal centroid tracking. The analysis begins
-with supplied flash-evoked response distances and converts each 30-trial series into a habituation
-time constant, `tau`. Baseline `tau` and acute within-fish changes were then evaluated in a
-leakage-controlled, clutch-held prediction pipeline. A separate c-fos qPCR experiment tested whether
-supplied risk strata, described as behavior-derived, also separated on an orthogonal molecular
-readout.
+Larval zebrafish were followed before and after pressure-wave exposure using a custom top-down
+infrared video rig. The project author reports that H.264 recordings were processed in **ToxTrac
+v2.50**, which tracked one larval centroid within each of 96 well-specific arenas. Cumulative
+centroid displacement during the first second after each flash produced the 30-trial response series
+used to estimate the habituation time constant, `tau`. Baseline `tau` and acute within-fish changes
+were then evaluated in a leakage-controlled, clutch-held prediction pipeline. A separate c-fos qPCR
+experiment tested whether supplied risk strata, described as behavior-derived, also separated on an
+orthogonal molecular readout.
 
 | Highlight | Result |
 |---|---|
@@ -66,10 +67,11 @@ evaluation.
 flowchart LR
     A["AB larvae across three clutches"] --> B["Sham / low / high pressure-wave exposure"]
     B --> C["30-trial dark-flash sessions"]
-    C --> D["60-fps infrared video rig"]
-    D --> E["Supplied response distance per flash"]
-    E --> F["Fit habituation time constant"]
-    F --> G["Baseline + within-fish changes"]
+    C --> D["60-fps H.264 infrared video"]
+    D --> E["ToxTrac v2.50 centroid tracks"]
+    E --> F["0–1000 ms displacement per flash"]
+    F --> M["Fit habituation time constant"]
+    M --> G["Baseline + within-fish changes"]
     G --> K["Nested clutch-held prediction"]
     K --> L["Later supplied behavioral label"]
     A --> H["Non-overlapping molecular ID cohort"]
@@ -82,18 +84,23 @@ flowchart LR
 ### Behavioral tracking and visual-habituation analysis
 
 The author-supplied protocol describes wild-type AB zebrafish maintained at 28.5 °C on a 14:10-hour
-light:dark cycle. Behavior was recorded with an **author-described custom Raspberry Pi–based,
-infrared-backlit dark-flash video rig intended for whole-animal centroid tracking**. The repository
-analyzes the supplied trial-level response distances; it does not process raw video frames.
+light:dark cycle. Behavior was recorded with a custom Raspberry Pi–based, infrared-backlit
+dark-flash rig and processed using **ToxTrac v2.50**, a standalone multi-arena organism-tracking
+application. The executable repository analyzes supplied trial-level response distances; it does
+not process raw video frames.
 
-| Recording/tracking component | Author-described setup or supplied input |
+| Recording/tracking component | Author-supplied method |
 |---|---|
 | Camera | Raspberry Pi NoIR Camera Module v2 (Sony IMX219) controlled by a Raspberry Pi 4 Model B |
-| Acquisition | 1280 × 720 pixels at 60 frames/s; camera mounted 240 mm above a 96-well plate |
-| Spatial scale | Approximately 10 pixels/mm across the plate footprint |
+| Video acquisition | H.264, 1280 × 720 pixels at 60 frames/s; camera mounted 240 mm above a 96-well plate |
+| Tracking application | **ToxTrac v2.50**, configured for one organism in each of 96 circular arenas |
+| Spatial calibration | 9.00-mm well pitch and SBS plate footprint; author-reported verification within 2% |
 | Tracking contrast | 850-nm infrared backlighting produced dark larval silhouettes on a bright field |
+| Detection | Static-background subtraction with a 0.8–6.0 mm² blob-area filter |
+| Track continuity | ToxTrac fragment linking bridged missed detections within each single-animal arena |
 | Stimulus synchronization | An in-frame red indicator LED marked dark-flash onset at frame-level resolution |
-| Behavioral input to this analysis | Supplied response distance in millimeters per flash, described as centroid-derived |
+| Behavioral response | Cumulative frame-to-frame centroid displacement from 0 to 1000 ms after each flash |
+| Export and QC | Per-frame centroid TSV files; fixed project settings; target detection rate above 95% per arena |
 
 The behavioral paradigm is **repeated-trial visual startle-habituation analysis**. Each session
 included baseline spontaneous-locomotion recording followed by 30 one-second dark flashes separated
@@ -108,10 +115,17 @@ response(k) = A × exp(-(k - 1) / tau) + C
 `tau` is the habituation time constant. A larger value indicates slower decay across repeated
 stimuli; a smaller value indicates faster habituation.
 
-The canonical workbook begins with derived `distance_mm` and `responded` values. Raw videos,
-tracking code, the exact post-flash response window, the centroid-extraction implementation, and the
-response threshold are not included. The repository therefore reproduces the habituation-curve and
-prediction analyses, but it cannot reconstruct the original video-to-distance tracking step.
+The author also reports manual frame-by-frame validation on 200 randomly selected trials using
+Pearson correlation and Bland–Altman analysis. Numerical validation results and trial-level manual
+scores were not supplied, so this remains a documented validation procedure rather than a
+repository-verified performance result.
+
+The repository does not include the raw H.264 videos, saved ToxTrac project/configuration,
+calibration clip, per-frame coordinate exports, tracking-QC logs, manual-validation data, or the
+coordinate-to-response processing script. It therefore reproduces the habituation-curve and
+prediction analyses from `distance_mm`, but cannot rerun or independently verify the original
+video-to-distance step. The threshold used to create the binary `responded` field also remains
+undocumented.
 
 ### Prediction model
 

@@ -65,10 +65,16 @@ chi-square test, and a descriptive power calculation. With 34 fish, it is explic
 ## Experimental documentation status
 
 The newly supplied protocol adds AB strain, husbandry, developmental timing, infrared-rig hardware,
-visual dark-flash timing, the general syringe pressure-wave procedure, tissue handling, qPCR
-workflow, PTZ exposure timing, and stated randomization and blinding procedures. These additions
-clarify that the author-supplied protocol identifies visual dark flashes rather than an acoustic
-pulse.
+H.264 acquisition, ToxTrac v2.50 tracking settings, the 0–1000-ms response definition, visual
+dark-flash timing, the general syringe pressure-wave procedure, tissue handling, qPCR workflow, PTZ
+exposure timing, and stated randomization and blinding procedures. These additions clarify that the
+author-supplied protocol identifies visual dark flashes rather than an acoustic pulse.
+
+The behavioral-data lineage is:
+
+`H.264 video → ToxTrac per-frame centroid TSV → 0–1000-ms cumulative displacement → workbook distance_mm → Python curve fit and prediction`
+
+Only the stages beginning with workbook `distance_mm` are executable from this repository.
 
 The methods narrative is not a substitute for primary records, and several statements conflict with
 the workbook. The analysis therefore follows the data-visible structure below.
@@ -77,7 +83,7 @@ the workbook. The analysis therefore follows the data-visible structure below.
 |---|---|---|
 | Cohorts | 133 longitudinal, 86 molecular, and 34 PTZ IDs are non-overlapping | Linkage records if the cohorts were intended to overlap |
 | Injury | Categorical low/high dose is available | Drop heights, mass, calibration, traces, pressure/impulse values |
-| Habituation | Workbook has 30 trials at five timepoints; supplied protocol identifies visual dark flashes | Videos, tracking code, response window, `responded` threshold |
+| Habituation/tracking | Workbook has 30 trials at five timepoints; supplied protocol identifies ToxTrac v2.50 and a 0–1000-ms dark-flash response window | Raw H.264 videos, ToxTrac project/ROIs/calibration, centroid TSVs, QC/manual-validation records, coordinate-processing script, and `responded` threshold |
 | Outcome | `converted` remains a supplied behavioral label | Exact velocity/burst algorithm and adjudication record; electrographic validation |
 | qPCR | 18 four-larva pools form nine supplied high/low pairs | Raw Ct replicates, primers, efficiencies, QC and pool-selection rule |
 | PTZ | Separate 34-animal, all-2.5-mM cohort | Vehicle records, scoring code, preparation, safety and disposition records |

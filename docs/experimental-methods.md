@@ -3,8 +3,9 @@
 This record incorporates the experimental methods supplied by the project author on 11 August
 2026. It documents the intended acquisition protocol and is separate from the executable analysis
 record in [methods-and-analysis.md](methods-and-analysis.md). The repository does not contain the
-raw videos, pressure traces, qPCR Ct files, allocation list, blinding key, dated protocol, or animal
-oversight identifiers needed to authenticate these details independently.
+raw videos, ToxTrac project files and coordinate exports, pressure traces, qPCR Ct files, allocation
+list, blinding key, dated protocol, or animal-oversight identifiers needed to authenticate these
+details independently.
 
 Where the supplied narrative and canonical workbook disagree, this document states both versions.
 All sample sizes, variables, and results reported by the pipeline follow the workbook and code.
@@ -47,10 +48,9 @@ reported requirement to conclude procedures before 7 dpf.
 
 ## 3. Behavioral recording and tracking system
 
-Recordings were acquired on a custom, top-down infrared video rig. The supplied protocol describes
-the intended readout as whole-animal centroid displacement from each larva's silhouette. Because the
-raw videos and tracking implementation are unavailable, the repository can verify and analyze the
-derived trial distances but cannot reproduce the frame-to-centroid step.
+### 3.1 Video acquisition and stimulus control
+
+Recordings were acquired as H.264 files on a custom, top-down infrared video rig.
 
 - **Camera:** Raspberry Pi 4 Model B with a Raspberry Pi NoIR Camera Module v2 (Sony IMX219),
   mounted 240 mm above the plate. Acquisition was reported at 1280 × 720 pixels and 60 frames per
@@ -68,8 +68,62 @@ derived trial distances but cannot reproduce the frame-to-centroid step.
 
 Python control software using `RPi.GPIO` and `picamera2` generated the stimulus sequence and a
 timestamped session log. The supplied protocol reports timing jitter below 5 ms. Source acquisition
-software, version identifiers, calibration images, and original session logs are not included in
+software, acquisition-library version identifiers, and original session logs are not included in
 the repository.
+
+### 3.2 ToxTrac v2.50 tracking
+
+The project author reports that larval positions were extracted with **ToxTrac v2.50** (Rodriguez
+et al., 2018), a standalone application for tracking organisms across multiple arenas.
+
+- **Arena definition:** 96 circular regions of interest were defined, one centered on each well.
+  Arena geometry was set from a calibration frame and reused unchanged for every session.
+- **Spatial calibration:** scale was set from the standard 9.00-mm center-to-center well pitch and
+  the 127.76 × 85.48-mm Society for Biomolecular Screening plate footprint. The protocol states
+  that a known plate dimension was remeasured in the calibration frame and agreed within 2%.
+- **Detection:** a static background model separated the dark larval silhouettes from the bright
+  infrared-backlit field. Blob area was restricted to 0.8–6.0 mm² to reject debris, bubbles, and
+  well-edge artifacts while retaining a single larva.
+- **Tracking:** each arena was configured for one organism. ToxTrac's fragment-linking procedure
+  bridged short detection failures; identity assignment was therefore confined to a single-animal
+  well.
+- **Fixed configuration:** detection settings were tuned once on a test recording, saved in the
+  ToxTrac project, and applied unchanged to all experimental videos. No per-session threshold
+  adjustment was permitted.
+- **Output:** per-frame centroid coordinates were exported for each arena as tab-delimited text.
+  Distance traveled, mean speed, and acceleration were retained as secondary measures.
+
+### 3.3 Response extraction, operating procedure, and quality control
+
+Stimulus onsets were identified from the synchronization LED in the recorded frames. For each flash,
+cumulative frame-to-frame centroid displacement was summed over the 0–1000-ms post-onset window,
+yielding one response distance per larva per trial. These 30 response distances formed the series
+entered into the exponential habituation fit.
+
+Before experimental processing, the protocol called for a 10-second empty-plate calibration clip
+under the same illumination. The 96 arenas, spatial scale, detection threshold, and size filter were
+set in a ToxTrac project file, which was then saved and copied without modification for each session.
+Videos were renamed to random codes and processed in randomized order so that group identity was
+masked during tracking.
+
+For every session, the stated quality-control checks were:
+
+- detection in more than 95% of frames for each arena, with lower-performing arenas flagged for
+  inspection;
+- identification of arenas with zero detections, consistent with a missing or nonmoving larva; and
+- agreement between the recorded frame count and expected session duration.
+
+The author reports that tracker output was compared with manual frame-by-frame scoring of 200
+randomly selected trials spanning wells, sessions, and treatment groups, with agreement assessed by
+Pearson correlation and Bland–Altman analysis. The manual scores and numerical agreement results
+were not supplied, so this is a documented validation procedure rather than a repository-verified
+tracking-performance result.
+
+The repository does not include the raw H.264 videos, empty-plate calibration clip, saved ToxTrac
+project/configuration, per-frame coordinate exports, tracking-QC logs, manual-validation records, or
+the script that converted synchronization and coordinate data into trial distances. Consequently,
+the executable analysis begins with the workbook's supplied `distance_mm` values and cannot rerun or
+independently verify the raw-video-to-distance stage.
 
 ## 4. Pressure-wave injury
 
@@ -109,8 +163,9 @@ asymptotic response floor. The supplied bounds were `A` in [0, 50], `tau` in [0.
 [0.1, 100]. It tries four starting values and retains the converged bounded nonlinear-least-squares
 fit with the smallest residual sum of squares. Larger `tau` indicates slower habituation.
 
-The workbook supplies trial distance and a binary `responded` field. The response-tracking window,
-centroid-extraction implementation, and threshold used to create `responded` remain unavailable.
+The workbook supplies the trial distance described above and a binary `responded` field. The
+0–1000-ms response window and ToxTrac procedure are now documented, but the threshold used to create
+`responded` remains unavailable.
 
 ## 6. Later behavioral outcome
 
@@ -191,6 +246,7 @@ unless the relevant source variables and code are added and the outputs regenera
 |---|---|---|
 | Longitudinal sample | 135 targeted | 133 observed at baseline |
 | Habituation schedule | −1, 0.5, and 24 h listed | −1, 0.5, 1, 5, and 24 h |
+| Video tracking | ToxTrac v2.50 with 96 arenas, fixed detection settings, and 0–1000-ms displacement | Pipeline begins with supplied `distance_mm`; raw videos, native project, centroid TSVs, and validation records absent |
 | Curve-fit bounds | A: 0–50; tau: 0.5–40; C: 0–20 | A/C: 0–200; tau: 0.1–100 |
 | Injury predictor | Continuous peak overpressure | Categorical low/high dose only |
 | Conversion rule | Burst rate above sham 95th percentile | Supplied label; 9–11/133 disagree depending on percentile convention |
@@ -232,6 +288,10 @@ unless the relevant source variables and code are added and the outputs regenera
     variable criteria. *Statistical Methods in Medical Research*. 2019.
 15. Vabalas A, Gowen E, Poliakoff E, Casson AJ. Machine learning algorithm validation with a limited
     sample size. *PLOS ONE*. 2019;14(11):e0224365.
+16. Rodriguez A, Zhang H, Klaminder J, Brodin T, Andersson PL, Andersson M. ToxTrac: a fast and
+    robust software for tracking organisms. *Methods in Ecology and Evolution*. 2018;9:460–464.
+    doi:10.1111/2041-210X.12874.
 
-These references were supplied with the methods narrative and have not been independently checked
-by this repository.
+These references were supplied with the methods narratives. The ToxTrac bibliographic details were
+checked against the publisher record during documentation; the other references have not been
+independently checked by this repository.

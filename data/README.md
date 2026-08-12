@@ -22,8 +22,10 @@ competition or publication, link the primary records that substantiate it, inclu
 - the data owner and permitted reuse terms;
 - dates and research site;
 - organism source, collection dates, cohort disposition, and welfare/oversight records;
-- exact injury calibration, tracking thresholds, outcome-label generation, qPCR QC, and PTZ records;
-- raw video or instrument-export inventory and immutable checksums;
+- exact injury calibration, the binary `responded` cutoff, outcome-label generation, qPCR QC, and
+  PTZ records;
+- raw H.264 video, ToxTrac project/ROI/calibration, per-frame centroid TSV, QC/manual-validation,
+  or other instrument-export inventory with immutable checksums;
 - randomization, blinding, exclusions, and outcome-labeling rules;
 - applicable prior approvals and the public-safe approval identifiers.
 

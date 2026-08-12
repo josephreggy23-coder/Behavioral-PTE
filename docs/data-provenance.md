@@ -28,7 +28,7 @@ None of those facts proves that the observations are authentic or fabricated. Th
 | Source measurements | Inventory and checksums for videos/instrument exports | Missing |
 | Animals | Strain, husbandry, age and screening protocol | Supplied; source/site and welfare records missing |
 | Pressure-wave exposure | Apparatus and sham procedure | Supplied; exact dose geometry, calibration and traces missing |
-| Habituation | Visual stimulus, interval, rig and acquisition rate | Supplied; videos, tracking and response threshold missing |
+| Habituation | Visual stimulus, H.264 acquisition, ToxTrac v2.50 settings/calibration, and 0–1000-ms response window | Supplied; raw videos, native configuration/ROIs, calibration clip, centroid TSVs, QC/validation records, processing script, and `responded` threshold missing |
 | Outcome | Intended observation window and threshold concept | Supplied; workbook labels do not reproduce from the stated rule |
 | qPCR | Tissue handling, extraction, target/reference and QC plan | Supplied; primers, efficiencies, raw Ct and plate/QC records missing |
 | PTZ | Concentration, exposure window and censoring concept | Supplied; cohort assignment, vehicle, scoring and SDS records missing |

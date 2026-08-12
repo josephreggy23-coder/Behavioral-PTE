@@ -1,10 +1,10 @@
-# Results — startle-habituation kinetics and a supplied post-injury behavioral label
+# Results — visual dark-flash habituation kinetics and a supplied post-injury behavioral label
 
 **Source:** `data/raw/behavioral_pte_source.xlsx`
 
 **Random seed: `20260809`** (numpy, scikit-learn, permutation and bootstrap draws). With the recorded input and tested dependency versions, rerunning `python run_all.py` reproduces the analysis numerically.
 
-> **Interpretation boundary.** These analyses use the supplied workbook. The repository does not include source videos, electrographic recordings, raw qPCR Ct data, animal-approval records, or a reproducible protocol for deriving the `converted` and `risk_pool` labels. The results therefore describe internal associations with supplied labels; they do not establish epilepsy or validate a biomarker.
+> **Interpretation boundary.** These analyses use the supplied workbook. The repository does not include raw H.264 videos, ToxTrac project/ROI/calibration files, centroid TSV exports, tracking-validation records, electrographic recordings, raw qPCR Ct data, animal-approval records, or a reproducible protocol for deriving the `converted` and `risk_pool` labels. The results therefore describe internal associations with supplied labels; they do not establish epilepsy or validate a biomarker.
 
 Every statistic quoted here is also in [`results/all_statistics.csv`](results/all_statistics.csv) with its test, statistic, df, p-value, effect size and CI.
 
@@ -25,6 +25,8 @@ Every statistic quoted here is also in [`results/all_statistics.csv`](results/al
 ---
 
 ## Step 1 — Re-estimating the habituation feature
+
+The project author describes `distance_mm` as cumulative frame-to-frame centroid displacement during 0–1000 ms after each dark flash, derived from ToxTrac v2.50 tracks. This executable pipeline begins with the supplied trial distances and does not process raw video frames.
 
 Per fish per session, `distance_mm(k) = A·exp(−(k−1)/τ) + C` was fitted to all 30 trials by nonlinear least squares (`scipy.optimize.curve_fit`, bounded, four starting points per session, best SSE retained).
 
@@ -230,7 +232,7 @@ At 0.5 h, Δτ from each fish's own baseline is **+3.74** trials in low_impact a
 
 The observed directions have different empirical meanings:
 
-- **Low dose → τ rises.** The fitted startle response decays more slowly across trials, which is consistent with impaired habituation.
+- **Low dose → τ rises.** The fitted visual dark-flash response decays more slowly across trials, which is consistent with impaired habituation.
 - **High dose → τ falls.** The fitted response decays more quickly. This could reflect faster habituation, depressed responsiveness, fatigue, or another process; the present measurements do not distinguish these explanations.
 
 The dose groups move the same fitted scalar in opposite directions. A model given Δτ without dose is asked to treat +4 trials and −3 trials as opposite kinds of evidence when they may reflect different processes. Encoding dose is one way to represent that context, but the strong dose-blind behavioral ablation shows that baseline and trajectory can recover substantial predictive information without it.
@@ -294,18 +296,18 @@ Real limitations, stated plainly:
 - **The model includes n = 81 fish with 36 events.** EPV = 9.0 is low. The CIs on the AUC and on every coefficient are wide, and they are reported rather than smoothed over.
 - **Three clutches means three outer folds.** The fold-to-fold spread is estimated from three numbers; the SD across folds should be read as indicative, not precise. The AUC interval resamples fish within the observed clutches while holding out-of-fold scores fixed, so it is conditional on these clutches and does not include model-selection uncertainty.
 - **7 injured fish were dropped** for a missing post-injury session. This is complete-case analysis, and the missingness mechanism has not been modelled.
-- **The binary outcome is supplied, not derived by code.** The workbook does not document a threshold, recording duration, blinded scoring procedure, or electrographic confirmation.
+- **The binary outcome is supplied, not derived by code.** The protocol describes a one-hour recording, but the exact velocity/burst algorithm, blinded label-derivation record, and electrographic confirmation are absent.
 - **The c-fos comparison uses pooled material** — 9 group-level pairs, 4 larvae per pool, but only 3 clutches. Risk bins are supplied rather than reproducibly generated, and raw qPCR Ct and QC data are absent.
 - **The workbook represents 253 unique animal IDs across three non-overlapping cohorts** (133 followed, 86 c-fos, and 34 PTZ); 72 of the c-fos animals entered pools.
-- **Data provenance is unresolved in the repository.** Source recordings, instrument exports, dated protocols, approval identifiers, and a label-derivation audit trail are not included.
+- **Data provenance is unresolved in the repository.** Raw H.264 videos, ToxTrac native configuration/ROI/calibration files, centroid TSV exports, tracking-QC and manual-validation records, dated protocols, approval identifiers, and a label-derivation audit trail are absent.
 - **The feature and model choices are not preregistered.** Nested cross-validation covers penalty tuning, not uncertainty from post-hoc feature, timepoint, or model selection.
 - **PTZ is underpowered** (above), and the study is not designed to support any claim from it.
 
 ## Conclusion
 
-In the supplied dataset, baseline and post-injury startle-habituation features distinguish injured larvae with versus without the supplied `converted` label, with a cross-validated AUC of 0.833 (conditional 95% interval [0.736, 0.916]), a total out-of-fold accuracy of 76.5%, and p = 0.0010 against a null that reruns the entire nested cross-validation. The dose-blind three-behavior model reaches a mean-fold AUC of 0.810, so explicit dose encoding is not necessary for the observed separation. The c-fos experiment supplies orthogonal molecular validation through cross-modal concordance with the supplied risk strata; it is not external validation of the classifier.
+In the supplied dataset, baseline and post-injury visual dark-flash habituation features distinguish injured larvae with versus without the supplied `converted` label, with a cross-validated AUC of 0.833 (conditional 95% interval [0.736, 0.916]), a total out-of-fold accuracy of 76.5%, and p = 0.0010 against a null that reruns the entire nested cross-validation. The dose-blind three-behavior model reaches a mean-fold AUC of 0.810, so explicit dose encoding is not necessary for the observed separation. The c-fos experiment supplies orthogonal molecular validation through cross-modal concordance with the supplied risk strata; it is not external validation of the classifier.
 
-The defensible conclusion is narrow: **startle-habituation kinetics carry internally cross-validated information about a later behavioral label in this workbook.** Prospective replication with documented outcome scoring, independent clutches, source-data provenance, and electrographic confirmation is required before calling the assay a biomarker of post-traumatic epilepsy.
+The defensible conclusion is narrow: **visual dark-flash habituation kinetics carry internally cross-validated information about a later behavioral label in this workbook.** Prospective replication with documented outcome scoring, independent clutches, source-data provenance, and electrographic confirmation is required before calling the assay a biomarker of post-traumatic epilepsy.
 
 ## Background literature
 
