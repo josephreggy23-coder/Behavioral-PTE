@@ -45,9 +45,12 @@ individual trials.
 The approximately 2.8-day interval between injury and outcome assessment was constrained by the
 reported requirement to conclude procedures before 7 dpf.
 
-## 3. Behavioral recording apparatus
+## 3. Behavioral recording and tracking system
 
-Recordings were acquired on a custom infrared tracking rig.
+Recordings were acquired on a custom, top-down infrared video rig. The supplied protocol describes
+the intended readout as whole-animal centroid displacement from each larva's silhouette. Because the
+raw videos and tracking implementation are unavailable, the repository can verify and analyze the
+derived trial distances but cannot reproduce the frame-to-centroid step.
 
 - **Camera:** Raspberry Pi 4 Model B with a Raspberry Pi NoIR Camera Module v2 (Sony IMX219),
   mounted 240 mm above the plate. Acquisition was reported at 1280 × 720 pixels and 60 frames per

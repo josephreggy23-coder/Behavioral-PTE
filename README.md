@@ -1,7 +1,7 @@
 # Acute Visual-Habituation Kinetics as a Candidate Predictor of Later Seizure-Like Activity
 
-**A longitudinal larval-zebrafish study combining pressure-wave injury, dark-flash habituation,
-clutch-aware prediction, and orthogonal molecular validation.**
+**A longitudinal larval-zebrafish study combining pressure-wave injury, 60-fps infrared video
+tracking, dark-flash habituation, clutch-aware prediction, and orthogonal molecular validation.**
 
 [Methods](docs/experimental-methods.md) ·
 [Analysis](docs/methods-and-analysis.md) ·
@@ -16,11 +16,13 @@ be present but difficult to measure at scale. This project tests whether the **s
 habituation over time**—not just a single startle response—contains information about later
 seizure-like behavior.
 
-Larval zebrafish were followed before and after pressure-wave exposure. A nonlinear model converted
-each 30-trial dark-flash session into a habituation time constant, `tau`. Baseline `tau` and acute
-within-fish changes were then evaluated in a leakage-controlled, clutch-held prediction pipeline.
-A separate c-fos qPCR experiment tested whether supplied risk strata, described as behavior-derived,
-also separated on an orthogonal molecular readout.
+Larval zebrafish were followed before and after pressure-wave exposure using an author-described,
+custom top-down infrared video rig intended for whole-animal centroid tracking. The analysis begins
+with supplied flash-evoked response distances and converts each 30-trial series into a habituation
+time constant, `tau`. Baseline `tau` and acute within-fish changes were then evaluated in a
+leakage-controlled, clutch-held prediction pipeline. A separate c-fos qPCR experiment tested whether
+supplied risk strata, described as behavior-derived, also separated on an orthogonal molecular
+readout.
 
 | Highlight | Result |
 |---|---|
@@ -64,10 +66,12 @@ evaluation.
 flowchart LR
     A["AB larvae across three clutches"] --> B["Sham / low / high pressure-wave exposure"]
     B --> C["30-trial dark-flash sessions"]
-    C --> D["Fit habituation time constant"]
-    D --> E["Baseline + within-fish changes"]
-    E --> F["Nested clutch-held prediction"]
-    F --> G["Later supplied behavioral label"]
+    C --> D["60-fps infrared video rig"]
+    D --> E["Supplied response distance per flash"]
+    E --> F["Fit habituation time constant"]
+    F --> G["Baseline + within-fish changes"]
+    G --> K["Nested clutch-held prediction"]
+    K --> L["Later supplied behavioral label"]
     A --> H["Non-overlapping molecular ID cohort"]
     H --> I["Matched fosab qPCR pools"]
     I --> J["Orthogonal molecular validation"]
@@ -75,12 +79,25 @@ flowchart LR
 
 ## Methods
 
-### Visual-habituation assay
+### Behavioral tracking and visual-habituation analysis
 
 The author-supplied protocol describes wild-type AB zebrafish maintained at 28.5 °C on a 14:10-hour
-light:dark cycle. A custom 60-frames-per-second infrared system recorded 30 responses to one-second
-dark flashes separated by 15 seconds. Sessions occurred before injury and at 0.5, 1, 5, and 24 hours
-afterward.
+light:dark cycle. Behavior was recorded with an **author-described custom Raspberry Pi–based,
+infrared-backlit dark-flash video rig intended for whole-animal centroid tracking**. The repository
+analyzes the supplied trial-level response distances; it does not process raw video frames.
+
+| Recording/tracking component | Author-described setup or supplied input |
+|---|---|
+| Camera | Raspberry Pi NoIR Camera Module v2 (Sony IMX219) controlled by a Raspberry Pi 4 Model B |
+| Acquisition | 1280 × 720 pixels at 60 frames/s; camera mounted 240 mm above a 96-well plate |
+| Spatial scale | Approximately 10 pixels/mm across the plate footprint |
+| Tracking contrast | 850-nm infrared backlighting produced dark larval silhouettes on a bright field |
+| Stimulus synchronization | An in-frame red indicator LED marked dark-flash onset at frame-level resolution |
+| Behavioral input to this analysis | Supplied response distance in millimeters per flash, described as centroid-derived |
+
+The behavioral paradigm is **repeated-trial visual startle-habituation analysis**. Each session
+included baseline spontaneous-locomotion recording followed by 30 one-second dark flashes separated
+by 15 seconds. Sessions occurred before injury and at 0.5, 1, 5, and 24 hours afterward.
 
 Each response series was fit as:
 
@@ -90,6 +107,11 @@ response(k) = A × exp(-(k - 1) / tau) + C
 
 `tau` is the habituation time constant. A larger value indicates slower decay across repeated
 stimuli; a smaller value indicates faster habituation.
+
+The canonical workbook begins with derived `distance_mm` and `responded` values. Raw videos,
+tracking code, the exact post-flash response window, the centroid-extraction implementation, and the
+response threshold are not included. The repository therefore reproduces the habituation-curve and
+prediction analyses, but it cannot reconstruct the original video-to-distance tracking step.
 
 ### Prediction model
 
