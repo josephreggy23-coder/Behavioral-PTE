@@ -16,3 +16,9 @@ dist/
 ~$*.xlsx
 
 .DS_Store
+
+# Editor / OS
+.idea/
+.vscode/
+Thumbs.db
+.mypy_cache/
