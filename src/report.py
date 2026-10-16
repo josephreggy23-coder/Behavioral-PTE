@@ -194,7 +194,7 @@ def write(ctx: dict) -> str:
     A("")
     A("| Model | " + " | ".join(sorted(folds["held_out"].unique())) + " |")
     A("|---|" + "---|" * folds["held_out"].nunique())
-    for key, g in folds.groupby("key", sort=False):
+    for _key, g in folds.groupby("key", sort=False):
         lab = g["label"].iloc[0]
         g = g.sort_values("held_out")
         A(f"| {lab} | " + " | ".join(f"{r.auc:.3f} (C={r.selected_C:g})" for r in g.itertuples()) + " |")

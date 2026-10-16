@@ -43,7 +43,7 @@ def _book() -> dict[str, pd.DataFrame]:
         pools["delta_ddct"] = pools["delta_delta_ct"]
     book["cfos_pools"] = pools
 
-    for name, df in book.items():
+    for df in book.values():
         if "group" in df.columns:
             df["group"] = pd.Categorical(df["group"], categories=config.GROUPS, ordered=True)
     return book
