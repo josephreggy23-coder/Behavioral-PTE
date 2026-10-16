@@ -204,7 +204,7 @@ def fig_cfos_paired(pairs: pd.DataFrame) -> str:
     fig, axes = plt.subplots(1, 2, figsize=(10.0, 4.2))
 
     ax = axes[0]
-    for i, r in enumerate(pairs.itertuples()):
+    for r in pairs.itertuples():
         col = config.GROUP_COLORS[r.group]
         ax.plot([0, 1], [r.low_risk, r.high_risk], "-o", color=col, ms=5, alpha=0.85, lw=1.5)
         ax.annotate(f"{r.clutch[-1]}", (1.02, r.high_risk), fontsize=6.5, color=col,
@@ -288,7 +288,7 @@ def fig_converter_trajectories(fits: pd.DataFrame, outcomes: pd.DataFrame) -> st
         dd = d[d["group"] == grp]
         for cls, lbl in [(0, "Non-converter"), (1, "Converter")]:
             s = dd[dd["converted"] == cls]
-            for fid, f in s.groupby("fish_id"):
+            for _fid, f in s.groupby("fish_id"):
                 f = f.set_index("timepoint_h").reindex(config.TIMEPOINTS)
                 ax.plot(x, f["decay_constant_fit"].values, color=config.OUTCOME_COLORS[cls],
                         alpha=0.16, lw=0.8)
