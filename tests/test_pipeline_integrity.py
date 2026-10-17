@@ -33,7 +33,7 @@ def test_skip_permutation_cli_passes_zero_to_step2(monkeypatch, tmp_path):
         return {}
 
     monkeypatch.setattr(run_all.step2_prediction, "run", fake_step2)
-    monkeypatch.setattr(run_all.step3_cfos, "run", lambda: {})
+    monkeypatch.setattr(run_all.step3_cfos, "run", dict)
     monkeypatch.setattr(run_all.step4_descriptive, "run", lambda _: {})
     monkeypatch.setattr(run_all.sb, "flush", lambda: pd.DataFrame())
     monkeypatch.setattr(run_all.report, "write", lambda _: "")
