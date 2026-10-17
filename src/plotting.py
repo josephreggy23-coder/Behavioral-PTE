@@ -219,7 +219,7 @@ def fig_cfos_paired(pairs: pd.DataFrame) -> str:
     ax.legend(handles=handles, fontsize=7.5)
 
     ax = axes[1]
-    order = [g for g in config.GROUPS]
+    order = list(config.GROUPS)
     for i, g in enumerate(order):
         d = pairs[pairs["group"] == g]["diff"]
         ax.scatter(np.full(len(d), i) + np.linspace(-0.07, 0.07, len(d)), d,
